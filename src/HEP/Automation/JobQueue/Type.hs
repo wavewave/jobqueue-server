@@ -24,6 +24,8 @@ module HEP.Automation.JobQueue.Type (
   ClientConfiguration(..)  
 ) where
 
+import Data.SafeCopy
+
 data JobDescription = JobDescription {
   jobdesc_jobtype :: JobType, 
   jobdesc_pbsbatch :: PBSBatchable,
@@ -50,3 +52,11 @@ data ClientConfiguration = ClientConfiguration {
   cliconf_models      :: [Model], 
   cliconf_madgraph    :: Installed
 }
+
+$(deriveSafeCopy 0 'base ''JobType)
+$(deriveSafeCopy 0 'base ''PBSBatchable)
+$(deriveSafeCopy 0 'base ''Model) 
+$(deriveSafeCopy 0 'base ''JobDescription)
+$(deriveSafeCopy 0 'base ''JobStatus)
+$(deriveSafeCopy 0 'base ''Installed)
+$(deriveSafeCopy 0 'base ''ClientConfiguration) 
