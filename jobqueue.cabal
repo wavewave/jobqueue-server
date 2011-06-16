@@ -1,0 +1,20 @@
+Name:		jobqueue
+Version:	0.0
+Synopsis:	job scheduler for event generation 
+Description: 	job scheduler for event generation
+License: 	BSD3
+License-file:	LICENSE
+Author:		Ian-Woo Kim
+Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
+Build-Type: 	Simple
+Cabal-Version:  >= 1.2
+
+Library
+  hs-source-dirs: src
+  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
+  ghc-prof-options: -caf-all -auto-all
+  Build-Depends: base>4
+  Exposed-Modules: 
+                   HEP.Automation.JobQueue.Type
+ 
+		 
