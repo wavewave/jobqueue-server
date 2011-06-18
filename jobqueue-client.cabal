@@ -19,7 +19,7 @@ Executable jobfetcher
 Executable jobsender
   Main-is: jobsender.hs
   hs-source-dirs: src
-  Build-Depends: base>4, mtl>2, jobqueue-common
+  Build-Depends: base>4, mtl>2, jobqueue-common, http-types, http-enumerator < 0.6, madgraph-auto 
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 
