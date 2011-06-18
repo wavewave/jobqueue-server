@@ -6,7 +6,7 @@
 
 ----------------------------------------------------
 --
--- Module       : HEP.Automation.JobQueue.Type
+-- Module       : HEP.Automation.JobQueue.JobType
 -- Copyright    : Ian-Woo Kim
 -- License      : BSD3
 -- 
@@ -14,11 +14,11 @@
 -- Stability    : Experimental
 -- Portability  : unknown 
 -- 
--- Types for the job queue 
+-- Types for a event gen job
 --
 ----------------------------------------------------
 
-module HEP.Automation.JobQueue.Type where
+module HEP.Automation.JobQueue.JobType where
 
 import Control.Applicative
 
@@ -31,14 +31,6 @@ import HEP.Automation.MadGraph.Model.AxiGluon
 import HEP.Automation.MadGraph.Model.Octet
 
 import Data.SafeCopy
-
-data JobInfo = JobInfo {
-  jobinfo_id     :: Int, 
-  jobinfo_detail :: JobDetail, 
-  jobinfo_status :: JobStatus
-}
-
-data JobDetail = EventGen EventSet | MathAnal EventSet 
 
 data EventSet = forall a. (Model a) => 
   EventSet {
@@ -53,8 +45,6 @@ instance (Model a) => SafeCopy (ModelParam a) where
               str <- safeGet
               return (interpreteParam str)
 
-
-
 instance SafeCopy MachineType where 
   putCopy TeVatron = contain (safePut (0 :: Int))
   putCopy LHC7     = contain (safePut (1 :: Int))
@@ -66,7 +56,6 @@ instance SafeCopy MachineType where
                            1 -> return LHC7 
                            2 -> return LHC14
                            3 -> Parton <$> safeGet  
-
 
 instance SafeCopy RGRunType where
   putCopy Fixed = contain (safePut (0 :: Int)) 
@@ -93,7 +82,6 @@ instance SafeCopy CutType where
                            0 -> return NoCut 
                            1 -> return DefCut 
                            2 -> return KCut
-
 
 instance SafeCopy PYTHIAType where
   putCopy NoPYTHIA  = contain (safePut (0 :: Int))
@@ -191,25 +179,7 @@ instance SafeCopy MadGraphVersion where
                            4 -> return MadGraph4
                            5 -> return MadGraph5
 
-data JobStatus = Unassigned 
-               | Assigned 
-               | BeingCalculated
-               | BeingTested
-               | Finished
 
-instance SafeCopy JobStatus where
-  putCopy Unassigned      = contain $ safePut (0 :: Int) 
-  putCopy Assigned        = contain $ safePut (1 :: Int) 
-  putCopy BeingCalculated = contain $ safePut (2 :: Int)
-  putCopy BeingTested     = contain $ safePut (3 :: Int)
-  putCopy Finished        = contain $ safePut (4 :: Int)
-  getCopy = contain $ do (x :: Int) <- safeGet 
-                         case x of 
-                           0 -> return Unassigned
-                           1 -> return Assigned
-                           2 -> return BeingCalculated
-                           3 -> return BeingTested
-                           4 -> return Finished 
 
 
 
