@@ -18,18 +18,7 @@
 --
 ----------------------------------------------------
 
-module HEP.Automation.JobQueue.Type 
-{- ( 
-  -- * Datatypes
- -- JobDescription(..), 
---   JobType(..), 
---   PBSBatchable(..), 
---   Model(..), 
---   JobStatus(..), 
---  Installed(..), 
---  ClientConfiguration(..)  
-) -} 
-where
+module HEP.Automation.JobQueue.Type where
 
 import Control.Applicative
 
@@ -57,9 +46,6 @@ data EventSet = forall a. (Model a) =>
     evset_rsetup :: RunSetup a
   } 
 
--- newtype PSetup a = PSetup { unPSetup :: ProcessSetup a }
-
--- newtype RSetup a = RSetup { unRSetup :: RunSetup a } 
 
 instance (Model a) => SafeCopy (ModelParam a) where
   putCopy mp = contain (safePut (briefParamShow mp))
@@ -85,39 +71,61 @@ instance SafeCopy MachineType where
 instance SafeCopy RGRunType where
   putCopy Fixed = contain (safePut (0 :: Int)) 
   putCopy Auto  = contain (safePut (1 :: Int)) 
-  getCopy = undefined
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return Fixed
+                           1 -> return Auto
 
 instance SafeCopy MatchType where
   putCopy NoMatch = contain (safePut (0 :: Int))
   putCopy MLM     = contain (safePut (1 :: Int))
-  getCopy = undefined
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return NoMatch
+                           1 -> return MLM
  
 instance SafeCopy CutType where
   putCopy NoCut  = contain (safePut (0 :: Int))
   putCopy DefCut = contain (safePut (1 :: Int))
   putCopy KCut   = contain (safePut (2 :: Int))
-  getCopy = undefined
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return NoCut 
+                           1 -> return DefCut 
+                           2 -> return KCut
+
 
 instance SafeCopy PYTHIAType where
   putCopy NoPYTHIA  = contain (safePut (0 :: Int))
   putCopy RunPYTHIA = contain (safePut (1 :: Int))
-  getCopy = undefined
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return NoPYTHIA
+                           1 -> return RunPYTHIA
 
 instance SafeCopy UserCutSet where
   putCopy NoUserCutDef = contain (safePut (0 :: Int)) 
   putCopy (UserCutDef uc) = contain $ do {safePut (1 :: Int); safePut uc }
-  getCopy = undefined
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return NoUserCutDef
+                           1 -> do (uc :: UserCut) <- safeGet
+                                   return (UserCutDef uc) 
 
 instance SafeCopy UserCut where
   putCopy (UserCut met etacutlep etcutlep etacutjet etcutjet) = contain $ do {
     safePut met; safePut etacutlep; safePut etcutlep; safePut etacutjet; safePut etcutjet }
-  getCopy = undefined 
+  getCopy = contain $ UserCut <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
 
 instance SafeCopy PGSType where
   putCopy NoPGS       = contain (safePut (0 :: Int))
   putCopy RunPGS      = contain (safePut (1 :: Int))
   putCopy RunPGSNoTau = contain (safePut (2 :: Int))
-  getCopy = undefined
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return NoPGS
+                           1 -> return RunPGS
+                           2 -> return RunPGSNoTau
 
 instance SafeCopy EventSet where
   putCopy (EventSet p r) = 
@@ -146,9 +154,34 @@ instance SafeCopy EventSet where
     pb <- safeGet 
     wn <- safeGet 
     case modelstr of 
-      "AxiGluon" -> return $ EventSet (PS mv AxiGluon pr pb wn) undefined 
-      "Octet"    -> return $ EventSet (PS mv Octet pr pb wn) undefined 
+      "AxiGluon" -> do 
+         (mp :: ModelParam AxiGluon) <- safeGet 
+         let p = PS mv AxiGluon pr pb wn 
+         r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                    <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+         return (EventSet p r)
+      "Octet" -> do 
+         (mp :: ModelParam Octet) <- safeGet
+         let p = PS mv Octet pr pb wn 
+         r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                    <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+         return (EventSet p r)
 
+{-
+    let p = case modelstr of 
+              "AxiGluon" -> PSWrapper (PS mv AxiGluon pr pb wn)
+              "Octet"    -> PSWrapper (PS mv Octet pr pb wn)
+    r <- RSWrapper <$> (RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                           <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                           <*> safeGet )
+    return (mkEventSet p r) -}
+
+{-                        
+data PSWrapper = forall a. (Model a) => PSWrapper { unPSWrapper :: ProcessSetup a }
+data RSWrapper = forall a. (Model a) => RSWrapper { unRSWrapper :: RunSetup a }
+
+mkEventSet :: PSWrapper -> RSWrapper -> EventSet 
+mkEventSet (PSWrapper unp) (RSWrapper unr) = EventSet unp unr -}
 
 instance SafeCopy MadGraphVersion where
   putCopy MadGraph4 = contain $ safePut (4 :: Int) 
@@ -158,60 +191,26 @@ instance SafeCopy MadGraphVersion where
                            4 -> return MadGraph4
                            5 -> return MadGraph5
 
-{-
-instance (Model a) => SafeCopy a where
-  putCopy m = contain $ safePut (modelName m)
-  getCopy = contain $ do str <- safeGet
-                         if str == modelName m 
-                           then return (modelType m)
-                           else error "no such model" -}
-
-
-
-
-{-
-instance (Model a) => SafeCopy (PSetup a) where
-  putCopy (PSetup p) = 
-    let PS mv m pr pb wn = p 
-    in  contain $ do safePut mv 
-                     safePut (modelName m)  
-                     safePut pr  
-                     safePut pb 
-                     safePut wn 
-  getCopy = undefined 
-
-instance (Model a) => SafeCopy (RSetup a) where
-  putCopy = undefined 
-  getCopy = undefined 
--}
-
-data JobStatus = Unassigend 
+data JobStatus = Unassigned 
                | Assigned 
                | BeingCalculated
                | BeingTested
                | Finished
 
+instance SafeCopy JobStatus where
+  putCopy Unassigned      = contain $ safePut (0 :: Int) 
+  putCopy Assigned        = contain $ safePut (1 :: Int) 
+  putCopy BeingCalculated = contain $ safePut (2 :: Int)
+  putCopy BeingTested     = contain $ safePut (3 :: Int)
+  putCopy Finished        = contain $ safePut (4 :: Int)
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return Unassigned
+                           1 -> return Assigned
+                           2 -> return BeingCalculated
+                           3 -> return BeingTested
+                           4 -> return Finished 
 
 
--- data Model = Model String 
-
-{-
-
-data Installed = NotInstalled | Installed -}
-
--- data ClientConfiguration = ClientConfiguration {
---   cliconf_mathematica :: Installed, 
---  cliconf_pbs         :: Installed, 
---  cliconf_models      :: [Model], 
---  cliconf_madgraph    :: Installed
--- }
-
--- $(deriveSafeCopy 0 'base ''JobType)
--- $(deriveSafeCopy 0 'base ''PBSBatchable)
--- $(deriveSafeCopy 0 'base ''Model) 
--- $(deriveSafeCopy 0 'base ''JobDescription)
--- $(deriveSafeCopy 0 'base ''JobStatus)
--- $(deriveSafeCopy 0 'base ''Installed)
--- $(deriveSafeCopy 0 'base ''ClientConfiguration) 
 
 
