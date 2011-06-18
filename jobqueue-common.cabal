@@ -14,10 +14,12 @@ Library
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
-                 madgraph-auto==0.5.*, cereal >= 0.3.1.0, madgraph-auto-model
+                 madgraph-auto==0.5.*, cereal >= 0.3.1.0, madgraph-auto-model, 
+                 aeson, attoparsec, vector, text
   Exposed-Modules: 
                    HEP.Automation.JobQueue.JobType
                    HEP.Automation.JobQueue.JobQueue
+                   HEP.Automation.JobQueue.JobJson
 
 
 		 
