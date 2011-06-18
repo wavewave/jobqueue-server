@@ -1,4 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable, TypeFamilies, TemplateHaskell #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GADTs #-}
+
 ----------------------------------------------------
 --
 -- Module       : HEP.Automation.JobQueue.Type
@@ -13,30 +18,172 @@
 --
 ----------------------------------------------------
 
-module HEP.Automation.JobQueue.Type ( 
+module HEP.Automation.JobQueue.Type 
+{- ( 
   -- * Datatypes
-  JobDescription(..), 
-  JobType(..), 
-  PBSBatchable(..), 
-  Model(..), 
-  JobStatus(..), 
-  Installed(..), 
-  ClientConfiguration(..)  
-) where
+ -- JobDescription(..), 
+--   JobType(..), 
+--   PBSBatchable(..), 
+--   Model(..), 
+--   JobStatus(..), 
+--  Installed(..), 
+--  ClientConfiguration(..)  
+) -} 
+where
+
+import Control.Applicative
+
+import HEP.Automation.MadGraph.Model
+import HEP.Automation.MadGraph.Machine
+import HEP.Automation.MadGraph.UserCut
+import HEP.Automation.MadGraph.SetupType
+
+import HEP.Automation.MadGraph.Model.AxiGluon 
+import HEP.Automation.MadGraph.Model.Octet
 
 import Data.SafeCopy
 
-data JobDescription = JobDescription {
-  jobdesc_jobtype :: JobType, 
-  jobdesc_pbsbatch :: PBSBatchable,
-  jobdesc_model :: Model 
+data JobInfo = JobInfo {
+  jobinfo_id     :: Int, 
+  jobinfo_detail :: JobDetail, 
+  jobinfo_status :: JobStatus
 }
 
-data JobType = EventGeneration | MathematicaAnalysis
+data JobDetail = EventGen EventSet | MathAnal EventSet 
 
-data PBSBatchable = NotPBSBatchable | PBSBatchable
+data EventSet = forall a. (Model a) => 
+  EventSet {
+    evset_psetup :: ProcessSetup a, 
+    evset_rsetup :: RunSetup a
+  } 
 
-data Model = Model String 
+-- newtype PSetup a = PSetup { unPSetup :: ProcessSetup a }
+
+-- newtype RSetup a = RSetup { unRSetup :: RunSetup a } 
+
+instance (Model a) => SafeCopy (ModelParam a) where
+  putCopy mp = contain (safePut (briefParamShow mp))
+  getCopy = contain $ do 
+              str <- safeGet
+              return (interpreteParam str)
+
+
+
+instance SafeCopy MachineType where 
+  putCopy TeVatron = contain (safePut (0 :: Int))
+  putCopy LHC7     = contain (safePut (1 :: Int))
+  putCopy LHC14    = contain (safePut (2 :: Int)) 
+  putCopy (Parton energy) = contain $ do {safePut (3 :: Int); safePut energy }
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return TeVatron 
+                           1 -> return LHC7 
+                           2 -> return LHC14
+                           3 -> Parton <$> safeGet  
+
+
+instance SafeCopy RGRunType where
+  putCopy Fixed = contain (safePut (0 :: Int)) 
+  putCopy Auto  = contain (safePut (1 :: Int)) 
+  getCopy = undefined
+
+instance SafeCopy MatchType where
+  putCopy NoMatch = contain (safePut (0 :: Int))
+  putCopy MLM     = contain (safePut (1 :: Int))
+  getCopy = undefined
+ 
+instance SafeCopy CutType where
+  putCopy NoCut  = contain (safePut (0 :: Int))
+  putCopy DefCut = contain (safePut (1 :: Int))
+  putCopy KCut   = contain (safePut (2 :: Int))
+  getCopy = undefined
+
+instance SafeCopy PYTHIAType where
+  putCopy NoPYTHIA  = contain (safePut (0 :: Int))
+  putCopy RunPYTHIA = contain (safePut (1 :: Int))
+  getCopy = undefined
+
+instance SafeCopy UserCutSet where
+  putCopy NoUserCutDef = contain (safePut (0 :: Int)) 
+  putCopy (UserCutDef uc) = contain $ do {safePut (1 :: Int); safePut uc }
+  getCopy = undefined
+
+instance SafeCopy UserCut where
+  putCopy (UserCut met etacutlep etcutlep etacutjet etcutjet) = contain $ do {
+    safePut met; safePut etacutlep; safePut etcutlep; safePut etacutjet; safePut etcutjet }
+  getCopy = undefined 
+
+instance SafeCopy PGSType where
+  putCopy NoPGS       = contain (safePut (0 :: Int))
+  putCopy RunPGS      = contain (safePut (1 :: Int))
+  putCopy RunPGSNoTau = contain (safePut (2 :: Int))
+  getCopy = undefined
+
+instance SafeCopy EventSet where
+  putCopy (EventSet p r) = 
+    let PS mv m pr pb wn = p 
+        RS mp ne ma rgr rgs mat cu py uc pg sn = r 
+    in  contain $ do safePut mv 
+                     safePut (modelName m)  
+                     safePut pr  
+                     safePut pb 
+                     safePut wn
+                     safePut mp 
+                     safePut ne 
+                     safePut ma 
+                     safePut rgr 
+                     safePut rgs
+                     safePut mat 
+                     safePut cu 
+                     safePut py 
+                     safePut uc 
+                     safePut pg 
+                     safePut sn
+  getCopy = contain $ do 
+    mv <- safeGet
+    modelstr <- safeGet 
+    pr <- safeGet  
+    pb <- safeGet 
+    wn <- safeGet 
+    case modelstr of 
+      "AxiGluon" -> return $ EventSet (PS mv AxiGluon pr pb wn) undefined 
+      "Octet"    -> return $ EventSet (PS mv Octet pr pb wn) undefined 
+
+
+instance SafeCopy MadGraphVersion where
+  putCopy MadGraph4 = contain $ safePut (4 :: Int) 
+  putCopy MadGraph5 = contain $ safePut (5 :: Int) 
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           4 -> return MadGraph4
+                           5 -> return MadGraph5
+
+{-
+instance (Model a) => SafeCopy a where
+  putCopy m = contain $ safePut (modelName m)
+  getCopy = contain $ do str <- safeGet
+                         if str == modelName m 
+                           then return (modelType m)
+                           else error "no such model" -}
+
+
+
+
+{-
+instance (Model a) => SafeCopy (PSetup a) where
+  putCopy (PSetup p) = 
+    let PS mv m pr pb wn = p 
+    in  contain $ do safePut mv 
+                     safePut (modelName m)  
+                     safePut pr  
+                     safePut pb 
+                     safePut wn 
+  getCopy = undefined 
+
+instance (Model a) => SafeCopy (RSetup a) where
+  putCopy = undefined 
+  getCopy = undefined 
+-}
 
 data JobStatus = Unassigend 
                | Assigned 
@@ -44,19 +191,27 @@ data JobStatus = Unassigend
                | BeingTested
                | Finished
 
-data Installed = NotInstalled | Installed
 
-data ClientConfiguration = ClientConfiguration {
-  cliconf_mathematica :: Installed, 
-  cliconf_pbs         :: Installed, 
-  cliconf_models      :: [Model], 
-  cliconf_madgraph    :: Installed
-}
 
-$(deriveSafeCopy 0 'base ''JobType)
-$(deriveSafeCopy 0 'base ''PBSBatchable)
-$(deriveSafeCopy 0 'base ''Model) 
-$(deriveSafeCopy 0 'base ''JobDescription)
-$(deriveSafeCopy 0 'base ''JobStatus)
-$(deriveSafeCopy 0 'base ''Installed)
-$(deriveSafeCopy 0 'base ''ClientConfiguration) 
+-- data Model = Model String 
+
+{-
+
+data Installed = NotInstalled | Installed -}
+
+-- data ClientConfiguration = ClientConfiguration {
+--   cliconf_mathematica :: Installed, 
+--  cliconf_pbs         :: Installed, 
+--  cliconf_models      :: [Model], 
+--  cliconf_madgraph    :: Installed
+-- }
+
+-- $(deriveSafeCopy 0 'base ''JobType)
+-- $(deriveSafeCopy 0 'base ''PBSBatchable)
+-- $(deriveSafeCopy 0 'base ''Model) 
+-- $(deriveSafeCopy 0 'base ''JobDescription)
+-- $(deriveSafeCopy 0 'base ''JobStatus)
+-- $(deriveSafeCopy 0 'base ''Installed)
+-- $(deriveSafeCopy 0 'base ''ClientConfiguration) 
+
+
