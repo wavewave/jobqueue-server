@@ -28,6 +28,8 @@ import Data.Aeson.Types
 import qualified Data.Vector as V
 import qualified Data.Map as M
 
+import HEP.Automation.JobQueue.JobType
+
 --import Control.Applicative
 
 class ToAeson a where 
@@ -40,6 +42,7 @@ class FromAeson a where
 atomize :: (Show a) => a -> Value 
 atomize = atomizeStr . show 
 
+atomizeStr :: String -> Value
 atomizeStr = String . pack
 
 instance ToAeson MachineType where
@@ -114,7 +117,11 @@ instance (Model a) => ToAeson (RunSetup a) where
                     , ("pgs"      , toAeson . pgs $ p) 
                     , ("setnum"   , Number . I . fromIntegral . setnum $ p)] 
 
-
+instance ToAeson EventSet where
+  toAeson (EventSet p r) = Object 
+                 $ M.fromList 
+                       [ ( "psetup" , toAeson p) 
+                       , ( "rsetup" , toAeson r) ] 
 
 
 
