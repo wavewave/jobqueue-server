@@ -24,12 +24,18 @@ module HEP.Automation.JobQueue.JobQueueYesod where
 
 import Yesod
 
+import Network.Wai
+import Network.Wai.Parse
 
+import qualified Data.Enumerator as E
+import qualified Data.ByteString as S
+import qualified Data.ByteString.Char8 as SC
 
 data JobQueueServer = JobQueueServer 
 
 mkYesod "JobQueueServer" [$parseRoutes|
 / HomeR GET
+/queue QueueR POST
 |]
 
 instance Yesod JobQueueServer where
@@ -42,3 +48,12 @@ getHomeR = do
   defaultLayout [$hamlet|Hello World!|]
 
 
+postQueueR = do 
+  r <- getRequest
+  let wr = reqWaiRequest r 
+  bs' <- lift E.consume
+  let bs = S.concat bs' 
+
+  liftIO $ do 
+    putStrLn "postQueueR called" 
+    putStrLn $ SC.unpack bs 
