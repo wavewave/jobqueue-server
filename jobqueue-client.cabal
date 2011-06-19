@@ -12,14 +12,17 @@ Cabal-Version:  >= 1.2
 Executable jobfetcher
   Main-is: jobfetcher.hs
   hs-source-dirs: src
-  Build-Depends: base>4, mtl>2, jobqueue-common, http-types, http-enumerator < 0.6
+  Build-Depends: base>4, mtl>2, jobqueue-common, http-types, 
+                 http-enumerator < 0.6
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 
 Executable jobsender
   Main-is: jobsender.hs
   hs-source-dirs: src
-  Build-Depends: base>4, mtl>2, jobqueue-common, http-types, http-enumerator < 0.6, madgraph-auto 
+  Build-Depends: base>4, mtl>2, jobqueue-common, http-types, 
+                 http-enumerator < 0.6, madgraph-auto, 
+                 bytestring, aeson
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 
