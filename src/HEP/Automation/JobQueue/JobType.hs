@@ -38,6 +38,9 @@ data EventSet = forall a. (Model a) =>
     evset_rsetup :: RunSetup a
   } 
 
+instance Show EventSet where
+  show (EventSet p r) = show p ++ "\n" ++ show r 
+
 
 instance (Model a) => SafeCopy (ModelParam a) where
   putCopy mp = contain (safePut (briefParamShow mp))
