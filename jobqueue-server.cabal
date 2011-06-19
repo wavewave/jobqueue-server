@@ -13,7 +13,7 @@ Executable jobqueueserver
   Main-is: jobqueueserver.hs
   hs-source-dirs: src
   Build-Depends: base>4, mtl>2, jobqueue-common, yesod, yesod-core, 
-                 bytestring, enumerator, wai-extra, wai
+                 bytestring, enumerator, wai-extra, wai, aeson, attoparsec
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 

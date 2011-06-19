@@ -31,7 +31,11 @@ import qualified Data.Enumerator as E
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as SC
 
+import Data.Aeson.Parser
+import Data.Attoparsec
+
 data JobQueueServer = JobQueueServer 
+
 
 mkYesod "JobQueueServer" [$parseRoutes|
 / HomeR GET
@@ -54,6 +58,8 @@ postQueueR = do
   bs' <- lift E.consume
   let bs = S.concat bs' 
 
+  let result = parse json bs
+
   liftIO $ do 
     putStrLn "postQueueR called" 
-    putStrLn $ SC.unpack bs 
+    putStrLn $ show result -- SC.unpack bs 
