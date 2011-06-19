@@ -4,6 +4,7 @@
 
 
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 ----------------------------------------------------
 --
@@ -34,6 +35,9 @@ import qualified Data.ByteString.Char8 as SC
 import Data.Aeson.Parser
 import Data.Attoparsec
 
+import HEP.Automation.JobQueue.JobType 
+import HEP.Automation.JobQueue.JobJson
+
 data JobQueueServer = JobQueueServer 
 
 
@@ -53,13 +57,21 @@ getHomeR = do
 
 
 postQueueR = do 
+  liftIO $ putStrLn "postQueueR called" 
   r <- getRequest
   let wr = reqWaiRequest r 
   bs' <- lift E.consume
   let bs = S.concat bs' 
 
-  let result = parse json bs
+  let resultjson = parse json bs
 
-  liftIO $ do 
-    putStrLn "postQueueR called" 
-    putStrLn $ show result -- SC.unpack bs 
+  case resultjson of 
+    Done _ rjson -> do 
+      let (result :: Maybe EventSet)  = fromAeson rjson
+      liftIO $ do 
+        putStrLn $ SC.unpack bs 
+        putStrLn $ show result -- SC.unpack bs 
+    _ -> do 
+      liftIO $ do 
+        putStrLn $ "result not parsed well : " ++ show resultjson
+ 

@@ -25,8 +25,9 @@ Library
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
                  jobqueue-common
   Exposed-Modules: 
-                   HEP.Automation.JobQueue.Type
-                   HEP.Automation.JobQueue.Access
-                   HEP.Automation.JobQueue.Test
+                   HEP.Automation.JobQueue.JobQueueYesod
+                   HEP.Automation.JobQueue.Interprete
+  --                   HEP.Automation.JobQueue.Access
+  --                   HEP.Automation.JobQueue.Test
 
 		 
