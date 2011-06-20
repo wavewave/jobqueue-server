@@ -1,5 +1,5 @@
 Name:		jobqueue-server
-Version:	0.0.4.0
+Version:	0.0.5.0
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3

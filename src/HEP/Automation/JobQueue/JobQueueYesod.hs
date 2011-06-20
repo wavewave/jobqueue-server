@@ -85,5 +85,7 @@ postQueueR = do
 getQueueListR = do 
   liftIO $ putStrLn "getQueueListR called" 
   JobQueueServer acid <- getYesod
-  liftIO $ do r <- query acid QueryAll
-              putStrLn (show r) 
+  r <- liftIO $ query acid QueryAll
+  
+  defaultLayoutJson [hamlet| this is html found |] (jsonJobInfoQueue r)
+             
