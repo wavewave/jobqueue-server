@@ -38,6 +38,8 @@ import Data.Attoparsec
 import HEP.Automation.JobQueue.JobType 
 import HEP.Automation.JobQueue.JobJson
 
+import HEP.Automation.JobQueue.QueueServerWork
+
 data JobQueueServer = JobQueueServer 
 
 
@@ -63,15 +65,12 @@ postQueueR = do
   bs' <- lift E.consume
   let bs = S.concat bs' 
 
-  let resultjson = parse json bs
+  let parsed = parseJobDetail bs 
 
-  case resultjson of 
-    Done _ rjson -> do 
-      let (result :: Maybe EventSet)  = fromAeson rjson
-      liftIO $ do 
-        putStrLn $ SC.unpack bs 
-        putStrLn $ show result -- SC.unpack bs 
-    _ -> do 
-      liftIO $ do 
-        putStrLn $ "result not parsed well : " ++ show resultjson
- 
+  case parsed of 
+    Just result -> liftIO $ do 
+                     putStrLn $ SC.unpack bs
+                     putStrLn $ show result
+    Nothing -> liftIO $ do 
+                 putStrLn $ "result not parsed well : " 
+                 putStrLn $ SC.unpack bs
