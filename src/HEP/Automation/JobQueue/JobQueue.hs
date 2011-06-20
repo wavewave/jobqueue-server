@@ -31,8 +31,10 @@ import Data.Acid
 import HEP.Automation.JobQueue.JobType
 
 import Prelude hiding (length)
-import Data.Sequence
+-- import Data.Sequence
 import Data.SafeCopy
+
+import qualified Data.IntMap as M
 
 
 data JobInfo = JobInfo {
@@ -66,18 +68,21 @@ instance SafeCopy JobStatus where
 $(deriveSafeCopy 0 'base ''JobDetail)
 $(deriveSafeCopy 0 'base ''JobInfo)
 
-newtype JobInfoQueue = JobInfoQueue (Seq JobInfo)
+data JobInfoQueue = JobInfoQueue { 
+                      jobinfoqueue_lastid :: Int,
+                      jobinfoqueue_map    :: M.IntMap JobInfo 
+                    }
 
-$(deriveSafeCopy 0 'base ''JobInfoQueue)
+$(deriveSafeCopy 0 'base ''JobInfoQueue) 
 
-addJob :: JobInfo -> Update JobInfoQueue ()
-addJob job = do JobInfoQueue jq <- get 
-                put $ JobInfoQueue (jq |> job) 
+addJob :: JobDetail -> Update JobInfoQueue () 
+addJob j = do JobInfoQueue lastid m <- get
+              let newjob = JobInfo (lastid+1) j Unassigned
+              put $ JobInfoQueue (lastid+1) (M.insert (lastid+1) newjob m)  
 
-queryFirstJob :: Query JobInfoQueue (Maybe JobInfo)
-queryFirstJob = do JobInfoQueue jq <- ask 
-                   if length jq == 0 
-                     then return Nothing
-                     else return (Just (index jq 0))
+queryAll :: Query JobInfoQueue (Int, [JobInfo]) 
+queryAll = do JobInfoQueue lastid m <- ask 
+              return (lastid, M.elems m)
 
-$(makeAcidic ''JobInfoQueue ['addJob, 'queryFirstJob])
+
+$(makeAcidic ''JobInfoQueue ['addJob, 'queryAll]) 
