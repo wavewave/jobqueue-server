@@ -45,12 +45,14 @@ data JobInfo = JobInfo {
 
 data JobDetail = EventGen { jobdetail_evset :: EventSet }  
                | MathAnal { jobdetail_evset :: EventSet } 
+               deriving Show
 
 data JobStatus = Unassigned 
                | Assigned 
                | BeingCalculated
                | BeingTested
                | Finished
+               deriving Show 
 
 instance SafeCopy JobStatus where
   putCopy Unassigned      = contain $ safePut (0 :: Int) 
