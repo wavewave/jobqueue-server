@@ -55,10 +55,26 @@ jobqueueTest2 str = do
   putStrLn $ show r 
 
 
+jobqueueList :: IO () 
+jobqueueList = do 
+  putStrLn "list"
+  manager <- newManager 
+  requestget <- parseUrl ("http://127.0.0.1:3600/queuelist")
+  
+  let requestgetjson = requestget { 
+        requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
+      }
+
+  r <- httpLbs requestgetjson manager 
+
+  putStrLn $ show r 
+
+
+
 commandLineProcess :: [String] -> IO () 
 commandLineProcess args = do 
   print args 
   case args !! 0 of
     "test" -> jobqueueTest 
     "test2" -> jobqueueTest2 "oohhhoooh"
-
+    "list" -> jobqueueList
