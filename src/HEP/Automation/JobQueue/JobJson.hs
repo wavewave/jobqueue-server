@@ -53,9 +53,15 @@ atomize = atomizeStr . show
 atomizeStr :: String -> Value
 atomizeStr = String . pack
 
+instance ToAeson Int where
+  toAeson = Number . I . fromIntegral
+
 instance FromAeson Int where
   fromAeson (Number (I val)) = Just (fromIntegral val) 
   fromAeson _ = Nothing
+
+instance ToAeson Double where
+  toAeson = Number . D
 
 instance FromAeson Double where
   fromAeson (Number (D val)) = Just val 
@@ -292,4 +298,18 @@ instance FromAeson JobDetail where
       _ -> Nothing 
 
 
+instance ToAeson JobStatus where
+  toAeson Unassigned = String "Unassigned"
+  toAeson Assigned   = String "Assigned"
+  toAeson BeingCalculated = String "BeingCalculated"
+  toAeson BeingTested = String "BeingTested"
+  toAeson Finished = String "Finished"
+
+
+instance ToAeson JobInfo where
+  toAeson i = Object $ 
+                M.fromList 
+                  [ ("id" , toAeson . jobinfo_id $ i)
+                  , ("detail", toAeson . jobinfo_detail $ i)
+                  , ("status", toAeson . jobinfo_status $ i) ]
          
