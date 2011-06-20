@@ -41,7 +41,7 @@ data JobInfo = JobInfo {
   jobinfo_id     :: Int, 
   jobinfo_detail :: JobDetail, 
   jobinfo_status :: JobStatus
-} deriving Typeable
+} deriving (Typeable, Show) 
 
 data JobDetail = EventGen { jobdetail_evset :: EventSet }  
                | MathAnal { jobdetail_evset :: EventSet } 
@@ -75,6 +75,7 @@ data JobInfoQueue = JobInfoQueue {
                       jobinfoqueue_lastid :: Int,
                       jobinfoqueue_map    :: M.IntMap JobInfo 
                     }
+                  deriving (Typeable, Show)
 
 $(deriveSafeCopy 0 'base ''JobInfoQueue) 
 

@@ -145,6 +145,12 @@ instance SafeCopy EventSet where
     pb <- safeGet 
     wn <- safeGet 
     case modelstr of 
+      "DummyModel" -> do 
+         (mp :: ModelParam DummyModel) <- safeGet 
+         let p = PS mv DummyModel pr pb wn 
+         r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                    <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+         return (EventSet p r)
       "AxiGluon" -> do 
          (mp :: ModelParam AxiGluon) <- safeGet 
          let p = PS mv AxiGluon pr pb wn 
