@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances #-}
 
 ----------------------------------------------------
 --
@@ -52,6 +52,28 @@ atomize = atomizeStr . show
 
 atomizeStr :: String -> Value
 atomizeStr = String . pack
+
+instance FromAeson Int where
+  fromAeson (Number (I val)) = Just (fromIntegral val) 
+  fromAeson _ = Nothing
+
+instance FromAeson Double where
+  fromAeson (Number (D val)) = Just val 
+  fromAeson _ = Nothing
+
+
+instance (FromAeson a) => FromAeson [a] where
+  fromAeson (Array vec) = mapM fromAeson (V.toList vec) 
+
+instance (ToAeson a) => ToAeson [a] where
+  toAeson = Array . V.fromList . map toAeson    
+
+instance FromAeson String where
+  fromAeson (String str) = Just . unpack $ str  
+  fromAeson _ = Nothing 
+
+instance ToAeson String where
+  toAeson = atomizeStr  
 
 instance ToAeson MachineType where
   toAeson TeVatron = Object (M.singleton "Type" (String "TeVatron"))
@@ -132,10 +154,6 @@ instance FromAeson UserCutSet where
   fromAeson _ = Nothing
 
 
-instance FromAeson Double where
-  fromAeson (Number (D val)) = Just val 
-  fromAeson _ = Nothing
-
 instance ToAeson UserCut where
   toAeson (UserCut met etacutlep etcutlep etacutjet etcutjet) 
     = Array . V.fromList . map (Number . D) $ [met,etacutlep,etcutlep,etacutjet,etcutjet]
@@ -187,9 +205,6 @@ modelFromAeson :: (Model a) => Value -> Maybe a
 modelFromAeson (String str) = modelFromString . unpack $ str
 modelFromAeson _ = Nothing
 
-instance FromAeson String where
-  fromAeson (String str) = Just . unpack $ str  
-  fromAeson _ = Nothing 
 
 instance (Model a) => ToAeson (ProcessSetup a) where
   toAeson p = Object 
@@ -209,9 +224,6 @@ instance (Model a) => FromAeson (ProcessSetup a) where
   fromAeson _ = Nothing 
  
 
-instance FromAeson Int where
-  fromAeson (Number (I val)) = Just (fromIntegral val) 
-  fromAeson _ = Nothing
 
 instance (Model a) => ToAeson (RunSetup a) where
   toAeson p = Object 
