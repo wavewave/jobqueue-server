@@ -16,6 +16,7 @@ import HEP.Automation.MadGraph.SetupType
 
 import HEP.Automation.JobQueue.JobType
 import HEP.Automation.JobQueue.JobJson
+import HEP.Automation.JobQueue.JobQueue
 
 import Data.Aeson.Encode
 
@@ -23,6 +24,8 @@ testjob_psetup = PS MadGraph4 DummyModel "test" "test" "test"
 testjob_rsetup = RS DummyParam 10000 LHC7 Fixed 200.0 NoMatch NoCut NoPYTHIA NoUserCutDef NoPGS 1
 
 testjob = EventSet testjob_psetup testjob_rsetup 
+
+testjobdetail = EventGen testjob
 
 jobqueueTest = do 
   putStrLn "test"
@@ -41,7 +44,7 @@ jobqueueTest2 str = do
   manager <- newManager 
   request <- parseUrl ("http://127.0.0.1:3600/queue")
   
-  let testjson = encode $ toAeson testjob 
+  let testjson = encode $ toAeson testjobdetail 
 
   let myrequestbody = RequestBodyLBS testjson -- (C.pack testjson) 
   
