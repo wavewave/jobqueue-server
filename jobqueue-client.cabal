@@ -9,16 +9,9 @@ Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
 Build-Type: 	Simple
 Cabal-Version:  >= 1.2
 
-Executable jobfetcher
-  Main-is: jobfetcher.hs
-  hs-source-dirs: src
-  Build-Depends: base>4, mtl>2, jobqueue-common, http-types, 
-                 http-enumerator < 0.6
-  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
-  ghc-prof-options: -caf-all -auto-all
 
-Executable jobsender
-  Main-is: jobsender.hs
+Executable jobclient 
+  Main-is: jobclient.hs
   hs-source-dirs: src
   Build-Depends: base>4, mtl>2, jobqueue-common, http-types, 
                  http-enumerator < 0.6, madgraph-auto, 
@@ -40,8 +33,6 @@ Library
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, jobqueue-common
   Exposed-Modules: 
---                   HEP.Automation.JobQueue.Access
---                   HEP.Automation.JobQueue.Test
                    HEP.Automation.JobQueue.Client.Command                 
 
 		 
