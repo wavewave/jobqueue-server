@@ -15,6 +15,7 @@ import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.JobJson
 
 import qualified Data.Map as M
+import qualified Data.IntMap as IM 
 
 parseJobDetail :: S.ByteString -> Maybe JobDetail
 parseJobDetail bs =
@@ -23,7 +24,6 @@ parseJobDetail bs =
        Done _ rjson -> fromAeson rjson
        _            -> Nothing 
  
-
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 
   let lastidjson = toAeson lastid 
@@ -31,4 +31,18 @@ jsonJobInfoQueue (lastid,jobinfos) =
   in  Object $ M.fromList [ ("lastid", lastidjson)
                           , ("map", jobinfosjson) ]
 
+{-
+queueUnassigned :: [Jobinfo] -> [JobInfo] 
+queueUnassigned (_, m) = IM.filter f m
+  where f j = jobinfo_status j == Unassigned   
 
+
+queueInprogress :: JobInfoQueue -> IM.IntMap JobInfo 
+queueInprogress (JobInfoQueue _ m) = IM.filter f m
+  where f j = let s = jobinfo_status j 
+              in  (s == Assigned) || (s == BeingCalculated) || (s == BeingTested) 
+
+queueFinished :: JobInfoQueue -> IM.IntMap JobInfo 
+queueFinished (JobInfoQueue _ m) = IM.filter f m
+  where f j = jobinfo_status j == Finished 
+-}

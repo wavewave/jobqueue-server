@@ -45,12 +45,20 @@ import Data.Acid
 
 data JobQueueServer = JobQueueServer { server_acid :: AcidState JobInfoQueue } 
 
-
 mkYesod "JobQueueServer" [parseRoutes|
 / HomeR GET
+/job/#JobNumber JobR GET
 /queue QueueR POST
 /queuelist QueueListR GET 
+/queuelist/unassigned QueueListUnassignedR GET
+/queuelist/inprogress QueueListInprogressR GET
+/queuelist/finished QueueListFinishedR GET
 |]
+
+-- /assign#JobNumber AssignJobR POST
+
+
+
 
 instance Yesod JobQueueServer where
   approot _ = ""
@@ -61,7 +69,6 @@ getHomeR = do
   liftIO $ putStrLn "getHomeR called"
   defaultLayout [hamlet|Hello World!|]
 
-
 postQueueR = do 
   liftIO $ putStrLn "postQueueR called" 
   JobQueueServer acid <- getYesod  
@@ -69,18 +76,23 @@ postQueueR = do
   let wr = reqWaiRequest r 
   bs' <- lift E.consume
   let bs = S.concat bs' 
-
   let parsed = parseJobDetail bs 
-
   case parsed of 
     Just result -> liftIO $ do 
                      putStrLn $ SC.unpack bs
                      putStrLn $ show result
                      update acid (AddJob result) >>= print  
-
     Nothing -> liftIO $ do 
                  putStrLn $ "result not parsed well : " 
                  putStrLn $ SC.unpack bs
+
+getJobR n = do
+  liftIO $ putStrLn "getJobR called"
+
+{-
+postAssignJobR n = do 
+  liftIO $ putStrLn "assignJobR called"  
+-} 
 
 getQueueListR = do 
   liftIO $ putStrLn "getQueueListR called" 
@@ -88,4 +100,20 @@ getQueueListR = do
   r <- liftIO $ query acid QueryAll
   
   defaultLayoutJson [hamlet| this is html found |] (jsonJobInfoQueue r)
-             
+
+getQueueListUnassignedR = do 
+  liftIO $ putStrLn "getQueueListUnassignedR called"
+  JobQueueServer acid <- getYesod
+  r <- liftIO $ query acid QueryAll
+
+  liftIO $ putStrLn $ show (filter f (snd r))
+ 
+  where f j = jobinfo_status j == Unassigned  
+  
+
+
+getQueueListInprogressR = do 
+  liftIO $ putStrLn "getQueueListInprogressR called"
+
+getQueueListFinishedR = do 
+  liftIO $ putStrLn "getQueueListFinishedR called"
