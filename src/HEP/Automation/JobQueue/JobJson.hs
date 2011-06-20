@@ -36,6 +36,7 @@ import qualified Data.Map as M
 
 
 import HEP.Automation.JobQueue.JobType
+import HEP.Automation.JobQueue.JobQueue
 
 --import Control.Applicative
 
@@ -262,3 +263,21 @@ instance FromAeson EventSet where
     where lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing 
 
+instance ToAeson JobDetail where
+  toAeson (EventGen evset) = Object $ 
+                               M.fromList [ ( "JobType",  String "EventGen" ) 
+                                          , ( "evset", toAeson evset) ]
+  toAeson (MathAnal evset) = Object $ 
+                               M.fromList [ ( "JobType",  String "MathAnal" )
+                                          , ( "evset", toAeson evset) ]
+
+instance FromAeson JobDetail where
+  fromAeson (Object m) = do
+    t <- M.lookup "JobType" m 
+    case t of 
+      "EventGen" -> EventGen <$> (M.lookup "evset" m >>= fromAeson) 
+      "MathAnal" -> MathAnal <$> (M.lookup "evset" m >>= fromAeson)
+      _ -> Nothing 
+
+
+         

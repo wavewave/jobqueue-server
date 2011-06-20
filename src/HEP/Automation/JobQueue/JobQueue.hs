@@ -43,7 +43,8 @@ data JobInfo = JobInfo {
   jobinfo_status :: JobStatus
 } deriving Typeable
 
-data JobDetail = EventGen EventSet | MathAnal EventSet 
+data JobDetail = EventGen { jobdetail_evset :: EventSet }  
+               | MathAnal { jobdetail_evset :: EventSet } 
 
 data JobStatus = Unassigned 
                | Assigned 
