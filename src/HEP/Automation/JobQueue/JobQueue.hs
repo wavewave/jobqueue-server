@@ -36,9 +36,10 @@ import Data.SafeCopy
 
 import qualified Data.IntMap as M
 
+type JobNumber = Int
 
 data JobInfo = JobInfo {
-  jobinfo_id     :: Int, 
+  jobinfo_id     :: JobNumber, 
   jobinfo_detail :: JobDetail, 
   jobinfo_status :: JobStatus
 } deriving (Typeable, Show) 
@@ -52,7 +53,8 @@ data JobStatus = Unassigned
                | BeingCalculated
                | BeingTested
                | Finished
-               deriving Show 
+               deriving (Show, Eq) 
+
 
 instance SafeCopy JobStatus where
   putCopy Unassigned      = contain $ safePut (0 :: Int) 
@@ -90,3 +92,6 @@ queryAll = do JobInfoQueue lastid m <- ask
 
 
 $(makeAcidic ''JobInfoQueue ['addJob, 'queryAll]) 
+
+
+

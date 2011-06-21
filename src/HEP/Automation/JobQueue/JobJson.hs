@@ -33,10 +33,10 @@ import Data.Aeson.Types
 import qualified Data.Vector as V
 import qualified Data.Map as M
 
-
-
 import HEP.Automation.JobQueue.JobType
 import HEP.Automation.JobQueue.JobQueue
+import HEP.Automation.JobQueue.Config 
+
 
 --import Control.Applicative
 
@@ -52,6 +52,13 @@ atomize = atomizeStr . show
 
 atomizeStr :: String -> Value
 atomizeStr = String . pack
+
+instance ToAeson Bool where
+  toAeson = Bool 
+
+instance FromAeson Bool where
+  fromAeson (Bool b) = Just b
+  fromAeson _ = Nothing 
 
 instance ToAeson Int where
   toAeson = Number . I . fromIntegral
@@ -296,7 +303,7 @@ instance FromAeson JobDetail where
       "EventGen" -> EventGen <$> (M.lookup "evset" m >>= fromAeson) 
       "MathAnal" -> MathAnal <$> (M.lookup "evset" m >>= fromAeson)
       _ -> Nothing 
-
+  fromAeson _ = Nothing
 
 instance ToAeson JobStatus where
   toAeson Unassigned = String "Unassigned"
@@ -313,3 +320,14 @@ instance ToAeson JobInfo where
                   , ("detail", toAeson . jobinfo_detail $ i)
                   , ("status", toAeson . jobinfo_status $ i) ]
          
+instance ToAeson ClientConfiguration where
+  toAeson (ClientConfiguration math pbs) = Object $ 
+                                             M.fromList 
+                                                [ ("mathematica", Bool math)
+                                                , ("pbs", Bool pbs )  ] 
+
+instance FromAeson ClientConfiguration where
+  fromAeson (Object m) = 
+    ClientConfiguration <$> lookupfunc "mathematica" <*> lookupfunc "pbs" 
+    where lookupfunc str = M.lookup str m >>= fromAeson
+  fromAeson _ = Nothing
