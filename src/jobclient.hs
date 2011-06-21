@@ -1,9 +1,16 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+
 module Main where
 
-import System.Environment
+-- import System.Environment
+import System.Console.CmdArgs
 import HEP.Automation.JobQueue.Client.Command
+import HEP.Automation.JobQueue.Client.Type
 
 main = do 
-  args <- getArgs
+-- args <- getArgs
   putStrLn "jobsender"
-  commandLineProcess args 
+  param <- cmdArgs defParam
+
+  readConfigFile param 
+--  commandLineProcess param 

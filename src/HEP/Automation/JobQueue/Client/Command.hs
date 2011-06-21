@@ -17,6 +17,11 @@ import HEP.Automation.MadGraph.SetupType
 import HEP.Automation.JobQueue.JobType
 import HEP.Automation.JobQueue.JobJson
 import HEP.Automation.JobQueue.JobQueue
+import HEP.Automation.JobQueue.Config
+
+import HEP.Automation.JobQueue.Client.Type 
+
+import Text.Parsec 
 
 import Data.Aeson.Encode
 
@@ -69,12 +74,37 @@ jobqueueList = do
 
   putStrLn $ show r 
 
+jobqueueUnassigned :: IO () 
+jobqueueUnassigned = do 
+  putStrLn "unassigned"
+  manager <- newManager 
+  requestget <- parseUrl ("http://127.0.0.1:3600/queuelist/unassigned")
+  
+  let requestgetjson = requestget { 
+        requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
+      }
+  r <- httpLbs requestgetjson manager 
+  putStrLn $ show r 
+ 
 
-
-commandLineProcess :: [String] -> IO () 
-commandLineProcess args = do 
-  print args 
-  case args !! 0 of
+commandLineProcess :: JobClient -> IO () 
+commandLineProcess (JobClient act conf) = do 
+  print act
+  case act of
     "test" -> jobqueueTest 
     "test2" -> jobqueueTest2 "oohhhoooh"
     "list" -> jobqueueList
+    "unassigned" -> jobqueueUnassigned
+
+
+readConfigFile :: JobClient -> IO ClientConfiguration
+readConfigFile (JobClient act conf) = do 
+  putStrLn conf
+  str <- readFile conf
+  let r = parse clientConfigurationParse "" str
+  case r of 
+    Right result -> do putStrLn (show result) 
+                       return result
+    Left err -> error (show err)
+                   
+

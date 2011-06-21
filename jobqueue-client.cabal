@@ -1,5 +1,5 @@
 Name:		jobqueue-client
-Version:	0.0.4.0
+Version:	0.0.5.0
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
@@ -15,7 +15,7 @@ Executable jobclient
   hs-source-dirs: src
   Build-Depends: base>4, mtl>2, jobqueue-common, http-types, 
                  http-enumerator < 0.6, madgraph-auto, 
-                 bytestring, aeson
+                 bytestring, aeson, cmdargs
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 
@@ -31,8 +31,10 @@ Library
   hs-source-dirs: src
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
-  Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, jobqueue-common
+  Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
+                 jobqueue-common, parsec
   Exposed-Modules: 
+                   HEP.Automation.JobQueue.Client.Type 
                    HEP.Automation.JobQueue.Client.Command                 
 
 		 
