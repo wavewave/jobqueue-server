@@ -7,6 +7,7 @@ import Text.Parsec
 
 
 data ClientConfiguration = ClientConfiguration { 
+  computerName :: String, 
   haveMathematica :: Bool,
   havePBS :: Bool
 } deriving Show
@@ -17,7 +18,8 @@ yesNo "No"  = False
 
 clientConfigurationParse :: ParsecT String () Identity ClientConfiguration
 clientConfigurationParse = 
-  ClientConfiguration <$> (oneFieldInput "haveMathematica" >>= return . yesNo)
+  ClientConfiguration <$> (oneFieldInput "computerName")
+                      <*> (oneFieldInput "haveMathematica" >>= return . yesNo)
                       <*> (oneFieldInput "havePBS" >>= return . yesNo)
 
  

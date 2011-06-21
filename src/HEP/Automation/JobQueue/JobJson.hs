@@ -205,7 +205,8 @@ instance FromAeson MadGraphVersion where
   fromAeson _ = Nothing
 
 instance (Model a) => ToAeson (ModelParam a) where
-  toAeson = atomize . briefParamShow 
+  toAeson p = let str = briefParamShow p  
+              in  String (pack str) 
 
 instance (Model a) => FromAeson (ModelParam a) where
   fromAeson (String value) = Just . interpreteParam . unpack $ value
@@ -277,7 +278,7 @@ instance FromAeson EventSet where
       Object ps -> do 
         mdl <- M.lookup "model" ps
         case mdl of 
-          String "AxiGluon" ->  
+          String "Axigluon_AV_MG" ->  
             EventSet <$> (lookupfunc "psetup" :: Maybe (ProcessSetup AxiGluon)) 
                      <*> (lookupfunc "rsetup" :: Maybe (RunSetup AxiGluon))
           String "DummyModel" -> 
@@ -321,13 +322,17 @@ instance ToAeson JobInfo where
                   , ("status", toAeson . jobinfo_status $ i) ]
          
 instance ToAeson ClientConfiguration where
-  toAeson (ClientConfiguration math pbs) = Object $ 
-                                             M.fromList 
-                                                [ ("mathematica", Bool math)
-                                                , ("pbs", Bool pbs )  ] 
+  toAeson (ClientConfiguration computer math pbs) = 
+      Object $ M.fromList 
+                 [ ("computer", toAeson computer )
+                 , ("mathematica", Bool math)
+                 , ("pbs", Bool pbs )  ] 
 
 instance FromAeson ClientConfiguration where
   fromAeson (Object m) = 
-    ClientConfiguration <$> lookupfunc "mathematica" <*> lookupfunc "pbs" 
+    ClientConfiguration 
+      <$> lookupfunc "computer" 
+      <*> lookupfunc "mathematica" 
+      <*> lookupfunc "pbs" 
     where lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing
