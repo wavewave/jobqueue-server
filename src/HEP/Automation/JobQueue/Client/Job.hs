@@ -15,16 +15,6 @@ import HEP.Automation.JobQueue.JobJson
 import Data.Aeson.Encode
 
 
-
-{-
-testjob_psetup = PS MadGraph4 DummyModel "test" "test" "test" 
-testjob_rsetup = RS DummyParam 10000 LHC7 Fixed 200.0 NoMatch NoCut NoPYTHIA NoUserCutDef NoPGS 1
-
-testjob = EventSet testjob_psetup testjob_rsetup 
-
-testjobdetail = EventGen testjob
--}
-
 jobqueueList :: IO () 
 jobqueueList = do 
   putStrLn "list"
