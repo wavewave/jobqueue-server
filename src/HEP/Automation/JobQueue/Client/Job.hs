@@ -9,6 +9,12 @@ import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.ByteString.Char8 as SC
 
 import HEP.Automation.JobQueue.Config
+import HEP.Automation.JobQueue.JobJson
+
+
+import Data.Aeson.Encode
+
+
 
 {-
 testjob_psetup = PS MadGraph4 DummyModel "test" "test" "test" 
@@ -65,4 +71,17 @@ jobqueueFinished   = do
 
 
 jobqueueAssign :: ClientConfiguration -> Int -> IO () 
-jobqueueAssign = undefined 
+jobqueueAssign cc jid = do 
+  putStrLn $ "Assign request of job " ++ show jid 
+  manager <- newManager 
+  requesttemp <- parseUrl.SC.pack $ "http://127.0.0.1:3600/job/"++ show jid ++ "/assign"
+  let ccjson = encode $ toAeson cc
+
+  let myrequestbody = RequestBodyLBS ccjson 
+  
+  let requestpost = requesttemp { method = methodPost, 
+                                  requestHeaders = [ ("Content-Type", "text/plain") ], 
+                                  requestBody = myrequestbody } 
+  r <- httpLbs requestpost manager 
+  putStrLn $ show r  
+
