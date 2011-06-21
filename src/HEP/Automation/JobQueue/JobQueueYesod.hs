@@ -36,6 +36,8 @@ import Data.Attoparsec
 import HEP.Automation.JobQueue.JobType 
 import HEP.Automation.JobQueue.JobJson
 import HEP.Automation.JobQueue.JobQueue
+import HEP.Automation.JobQueue.Config
+
 
 import HEP.Automation.JobQueue.QueueServerWork
 
@@ -70,7 +72,7 @@ postQueueR = do
   let wr = reqWaiRequest r 
   bs' <- lift E.consume
   let bs = S.concat bs' 
-  let parsed = parseJobDetail bs 
+  let parsed = (parseJson bs :: Maybe JobDetail)
   case parsed of 
     Just result -> liftIO $ do 
                      putStrLn $ SC.unpack bs
@@ -116,3 +118,15 @@ getQueueListFinishedR = do
 
 postAssignJobR n = do 
   liftIO $ putStrLn "assignJobR called"  
+  JobQueueServer acid <- getYesod  
+  r <- getRequest
+  let wr = reqWaiRequest r 
+  bs' <- lift E.consume
+  let bs = S.concat bs' 
+  let parsed = (parseJson bs :: Maybe ClientConfiguration) 
+  case parsed of 
+    Just result -> liftIO $ do 
+                     putStrLn $ show result
+    Nothing -> liftIO $ do 
+                 putStrLn $ "result not parsed well : " 
+                 S.putStrLn bs

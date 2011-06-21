@@ -17,21 +17,21 @@ import HEP.Automation.JobQueue.JobJson
 import qualified Data.Map as M
 import qualified Data.IntMap as IM 
 
-parseJobDetail :: S.ByteString -> Maybe JobDetail
-parseJobDetail bs =
+parseJson :: (FromAeson a) => S.ByteString -> Maybe a
+parseJson bs =
   let resultjson = parse json bs
   in case resultjson of 
        Done _ rjson -> fromAeson rjson
        _            -> Nothing 
 
-
- 
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 
   let lastidjson = toAeson lastid 
       jobinfosjson = toAeson jobinfos
   in  Object $ M.fromList [ ("lastid", lastidjson)
                           , ("map", jobinfosjson) ]
+
+
 
 {-
 queueUnassigned :: [Jobinfo] -> [JobInfo] 
