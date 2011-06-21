@@ -98,22 +98,33 @@ getQueueListR = do
   liftIO $ putStrLn "getQueueListR called" 
   JobQueueServer acid <- getYesod
   r <- liftIO $ query acid QueryAll
-  
   defaultLayoutJson [hamlet| this is html found |] (jsonJobInfoQueue r)
 
 getQueueListUnassignedR = do 
   liftIO $ putStrLn "getQueueListUnassignedR called"
   JobQueueServer acid <- getYesod
   r <- liftIO $ query acid QueryAll
-
   liftIO $ putStrLn $ show (filter f (snd r))
- 
+
   where f j = jobinfo_status j == Unassigned  
   
 
 
 getQueueListInprogressR = do 
   liftIO $ putStrLn "getQueueListInprogressR called"
+  JobQueueServer acid <- getYesod
+  r <- liftIO $ query acid QueryAll 
+  liftIO $ putStrLn $ show (filter f (snd r))
+  
+  where f j = let s = jobinfo_status j
+              in (s == Assigned) || (s == BeingCalculated) || (s == BeingTested)
+
 
 getQueueListFinishedR = do 
   liftIO $ putStrLn "getQueueListFinishedR called"
+  JobQueueServer acid <- getYesod
+  r <- liftIO $ query acid QueryAll 
+  liftIO $ putStrLn $ show (filter f (snd r))
+  
+  where f j = jobinfo_status j == Finished
+
