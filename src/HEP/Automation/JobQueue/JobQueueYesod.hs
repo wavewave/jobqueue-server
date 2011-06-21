@@ -1,8 +1,6 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes, DeriveDataTypeable, 
              MultiParamTypeClasses, TypeFamilies, FlexibleContexts,  
              FlexibleInstances, OverloadedStrings #-}
-
-
 {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -53,12 +51,8 @@ mkYesod "JobQueueServer" [parseRoutes|
 /queuelist/unassigned QueueListUnassignedR GET
 /queuelist/inprogress QueueListInprogressR GET
 /queuelist/finished QueueListFinishedR GET
+/job/#JobNumber/assign AssignJobR POST 
 |]
-
--- /assign#JobNumber AssignJobR POST
-
-
-
 
 instance Yesod JobQueueServer where
   approot _ = ""
@@ -89,11 +83,6 @@ postQueueR = do
 getJobR n = do
   liftIO $ putStrLn "getJobR called"
 
-{-
-postAssignJobR n = do 
-  liftIO $ putStrLn "assignJobR called"  
--} 
-
 getQueueListR = do 
   liftIO $ putStrLn "getQueueListR called" 
   JobQueueServer acid <- getYesod
@@ -104,27 +93,26 @@ getQueueListUnassignedR = do
   liftIO $ putStrLn "getQueueListUnassignedR called"
   JobQueueServer acid <- getYesod
   r <- liftIO $ query acid QueryAll
-  liftIO $ putStrLn $ show (filter f (snd r))
-
-  where f j = jobinfo_status j == Unassigned  
-  
-
+  let f j = jobinfo_status j == Unassigned
+      result = filter f (snd r)
+  defaultLayoutJson [hamlet| this is html found |] (toAeson result)
 
 getQueueListInprogressR = do 
   liftIO $ putStrLn "getQueueListInprogressR called"
   JobQueueServer acid <- getYesod
   r <- liftIO $ query acid QueryAll 
-  liftIO $ putStrLn $ show (filter f (snd r))
-  
-  where f j = let s = jobinfo_status j
-              in (s == Assigned) || (s == BeingCalculated) || (s == BeingTested)
-
+  let f j = let s = jobinfo_status j
+            in (s == Assigned) || (s == BeingCalculated) || (s == BeingTested)
+      result = filter f (snd r)
+  defaultLayoutJson [hamlet| this is html found |] (toAeson result)
 
 getQueueListFinishedR = do 
   liftIO $ putStrLn "getQueueListFinishedR called"
   JobQueueServer acid <- getYesod
   r <- liftIO $ query acid QueryAll 
-  liftIO $ putStrLn $ show (filter f (snd r))
-  
-  where f j = jobinfo_status j == Finished
+  let f j = jobinfo_status j == Finished
+      result = filter f (snd r)
+  defaultLayoutJson [hamlet| this is html found |] (toAeson result)
 
+postAssignJobR n = do 
+  liftIO $ putStrLn "assignJobR called"  

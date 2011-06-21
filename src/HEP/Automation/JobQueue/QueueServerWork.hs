@@ -23,6 +23,8 @@ parseJobDetail bs =
   in case resultjson of 
        Done _ rjson -> fromAeson rjson
        _            -> Nothing 
+
+
  
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 
