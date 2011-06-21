@@ -10,7 +10,8 @@ import HEP.Automation.JobQueue.Client.Type
 main = do 
 -- args <- getArgs
   putStrLn "jobsender"
-  param <- cmdArgs defParam
+  param <- cmdArgs mode 
 
-  readConfigFile param 
---  commandLineProcess param 
+  putStrLn $ show param 
+--  readConfigFile param 
+  commandLineProcess param 
