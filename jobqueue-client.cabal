@@ -36,5 +36,6 @@ Library
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Client.Type 
                    HEP.Automation.JobQueue.Client.Command                 
+                   HEP.Automation.JobQueue.Client.Job
 
 		 

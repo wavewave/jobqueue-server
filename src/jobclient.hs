@@ -13,5 +13,5 @@ main = do
   param <- cmdArgs mode 
 
   putStrLn $ show param 
---  readConfigFile param 
+-- readConfigFile param 
   commandLineProcess param 
