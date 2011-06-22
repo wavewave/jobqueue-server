@@ -164,21 +164,6 @@ instance SafeCopy EventSet where
                     <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
          return (EventSet p r)
 
-{-
-    let p = case modelstr of 
-              "AxiGluon" -> PSWrapper (PS mv AxiGluon pr pb wn)
-              "Octet"    -> PSWrapper (PS mv Octet pr pb wn)
-    r <- RSWrapper <$> (RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
-                           <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
-                           <*> safeGet )
-    return (mkEventSet p r) -}
-
-{-                        
-data PSWrapper = forall a. (Model a) => PSWrapper { unPSWrapper :: ProcessSetup a }
-data RSWrapper = forall a. (Model a) => RSWrapper { unRSWrapper :: RunSetup a }
-
-mkEventSet :: PSWrapper -> RSWrapper -> EventSet 
-mkEventSet (PSWrapper unp) (RSWrapper unr) = EventSet unp unr -}
 
 instance SafeCopy MadGraphVersion where
   putCopy MadGraph4 = contain $ safePut (4 :: Int) 

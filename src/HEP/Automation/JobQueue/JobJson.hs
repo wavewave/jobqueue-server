@@ -27,9 +27,12 @@ import HEP.Automation.MadGraph.SetupType
 import HEP.Automation.MadGraph.Model.AxiGluon
 
 import Data.Text hiding (map)
+import Data.Attoparsec 
 import Data.Attoparsec.Number 
-import Data.Aeson.Types 
+import Data.Aeson.Types hiding (parse)
+import Data.Aeson.Parser 
 
+import qualified Data.ByteString as S
 import qualified Data.Vector as V
 import qualified Data.Map as M
 
@@ -327,6 +330,14 @@ instance ToAeson JobStatus where
   toAeson BeingTested = String "BeingTested"
   toAeson Finished = String "Finished"
 
+instance FromAeson JobStatus where
+  fromAeson (String "Unassigned") = Just Unassigned
+  fromAeson (String "Assigned") = Just Assigned
+  fromAeson (String "BeingCalculated") = Just BeingCalculated
+  fromAeson (String "BeingTested") = Just BeingTested
+  fromAeson (String "Finished") = Just Finished
+  fromAeson _ = Nothing 
+
 
 instance ToAeson JobInfo where
   toAeson i = Object $ 
@@ -334,6 +345,14 @@ instance ToAeson JobInfo where
                   [ ("id" , toAeson . jobinfo_id $ i)
                   , ("detail", toAeson . jobinfo_detail $ i)
                   , ("status", toAeson . jobinfo_status $ i) ]
+
+instance FromAeson JobInfo where
+  fromAeson (Object m) = 
+    JobInfo <$> lookupfunc "id" 
+            <*> lookupfunc "detail" 
+            <*> lookupfunc "status" 
+    where lookupfunc str = M.lookup str m >>= fromAeson  
+  fromAeson _ = Nothing
          
 instance ToAeson ClientConfiguration where
   toAeson (ClientConfiguration computer math pbs montecarlo) = 
@@ -352,3 +371,10 @@ instance FromAeson ClientConfiguration where
       <*> lookupfunc "montecarlo"
     where lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing
+
+parseJson :: (FromAeson a) => S.ByteString -> Maybe a
+parseJson bs =
+  let resultjson = parse json bs
+  in case resultjson of 
+       Done _ rjson -> fromAeson rjson
+       _            -> Nothing 

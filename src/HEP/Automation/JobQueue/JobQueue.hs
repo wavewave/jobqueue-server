@@ -90,8 +90,21 @@ queryAll :: Query JobInfoQueue (Int, [JobInfo])
 queryAll = do JobInfoQueue lastid m <- ask 
               return (lastid, M.elems m)
 
+queryJob :: Int -> Query JobInfoQueue (Maybe JobInfo) 
+queryJob k = do JobInfoQueue _ m <- ask
+                return (M.lookup k m)
 
-$(makeAcidic ''JobInfoQueue ['addJob, 'queryAll]) 
+updateJob :: Int -> JobInfo -> Update JobInfoQueue (Maybe JobInfo)
+updateJob k jinfo 
+    | k /= jobinfo_id jinfo = return Nothing
+    | k == jobinfo_id jinfo = 
+        do JobInfoQueue l m <- get 
+           let f k a = Just jinfo 
+           let (r,m') = M.updateLookupWithKey f k m
+           put (JobInfoQueue l m')
+           return r 
+ 
+$(makeAcidic ''JobInfoQueue ['addJob, 'queryAll, 'queryJob, 'updateJob]) 
 
 
 
