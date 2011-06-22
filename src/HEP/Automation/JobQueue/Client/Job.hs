@@ -9,12 +9,13 @@ import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.ByteString.Char8 as SC
 
 import HEP.Automation.JobQueue.Config
+import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.JobJson
 
 
 import Data.Aeson.Encode
 
-jobqueueGet :: Int -> IO () 
+jobqueueGet :: JobNumber -> IO () 
 jobqueueGet jid = do 
   putStrLn "get" 
   manager <- newManager
@@ -25,6 +26,21 @@ jobqueueGet jid = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
+jobqueuePut :: JobInfo -> IO () 
+jobqueuePut jinfo = do 
+  putStrLn "put" 
+  manager <- newManager 
+  requesttemp <- parseUrl (SC.pack ("http://127.0.0.1:3600/job/" 
+                                   ++ show (jobinfo_id jinfo)))
+  let myrequestbody = RequestBodyLBS . encode . toAeson $ jinfo
+  let requestput = requesttemp { 
+                     method = methodPut, 
+                     requestHeaders = [ ("Content-Type", "text/plain") 
+                                      , ("Accept", "application/json; charset=utf-8")], 
+                     requestBody = myrequestbody 
+                   } 
+  r <- httpLbs requestput manager 
+  putStrLn $ show r 
 
 jobqueueList :: IO () 
 jobqueueList = do 
@@ -70,21 +86,29 @@ jobqueueFinished   = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
-
 jobqueueAssign :: ClientConfiguration -> IO () 
 jobqueueAssign cc = do 
   putStrLn $ "Assign request of job "
   manager <- newManager 
   requesttemp <- parseUrl.SC.pack $ "http://127.0.0.1:3600/assign"
   let ccjson = encode $ toAeson cc
-
-  let myrequestbody = RequestBodyLBS ccjson 
-  
-  let requestpost = requesttemp { 
+      myrequestbody = RequestBodyLBS ccjson 
+      requestpost = requesttemp { 
                       method = methodPost, 
                       requestHeaders = [ ("Content-Type", "text/plain") 
                                        , ("Accept", "application/json; charset=utf-8")], 
                       requestBody = myrequestbody } 
   r <- httpLbs requestpost manager 
-  putStrLn $ show r  
+  let result = ( parseJson  . SC.concat . C.toChunks .  responseBody ) r :: Maybe (Either String JobInfo) 
+  case result of 
+    Just (Right jinfo) -> do putStrLn "Job assigned"
+                             putStrLn (show jinfo)
+                             let newjob = jinfo { jobinfo_status = Assigned } 
+                             jobqueuePut newjob 
+                             startjob newjob
+    Just (Left msg)    -> do putStrLn "Error message from server" 
+                             putStrLn msg
+    Nothing            -> do putStrLn "Parsing failed"
 
+startjob :: JobInfo -> IO () 
+startjob _ = return ()
