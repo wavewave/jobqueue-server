@@ -14,6 +14,17 @@ import HEP.Automation.JobQueue.JobJson
 
 import Data.Aeson.Encode
 
+jobqueueGet :: Int -> IO () 
+jobqueueGet jid = do 
+  putStrLn "get" 
+  manager <- newManager
+  requestget <- parseUrl (SC.pack ("http://127.0.0.1:3600/job/" ++ (show jid)))
+  let requestgetjson = requestget { 
+        requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
+      }
+  r <- httpLbs requestgetjson manager 
+  putStrLn $ show r 
+
 
 jobqueueList :: IO () 
 jobqueueList = do 
@@ -60,18 +71,20 @@ jobqueueFinished   = do
   putStrLn $ show r 
 
 
-jobqueueAssign :: ClientConfiguration -> Int -> IO () 
-jobqueueAssign cc jid = do 
-  putStrLn $ "Assign request of job " ++ show jid 
+jobqueueAssign :: ClientConfiguration -> IO () 
+jobqueueAssign cc = do 
+  putStrLn $ "Assign request of job "
   manager <- newManager 
-  requesttemp <- parseUrl.SC.pack $ "http://127.0.0.1:3600/job/"++ show jid ++ "/assign"
+  requesttemp <- parseUrl.SC.pack $ "http://127.0.0.1:3600/assign"
   let ccjson = encode $ toAeson cc
 
   let myrequestbody = RequestBodyLBS ccjson 
   
-  let requestpost = requesttemp { method = methodPost, 
-                                  requestHeaders = [ ("Content-Type", "text/plain") ], 
-                                  requestBody = myrequestbody } 
+  let requestpost = requesttemp { 
+                      method = methodPost, 
+                      requestHeaders = [ ("Content-Type", "text/plain") 
+                                       , ("Accept", "application/json; charset=utf-8")], 
+                      requestBody = myrequestbody } 
   r <- httpLbs requestpost manager 
   putStrLn $ show r  
 
