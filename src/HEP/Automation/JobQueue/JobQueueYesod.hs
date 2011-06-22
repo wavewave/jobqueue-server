@@ -47,13 +47,13 @@ data JobQueueServer = JobQueueServer { server_acid :: AcidState JobInfoQueue }
 
 mkYesod "JobQueueServer" [parseRoutes|
 / HomeR GET
-/job/#JobNumber JobR GET
+/job/#JobNumber JobR 
 /queue QueueR POST
 /queuelist QueueListR GET 
 /queuelist/unassigned QueueListUnassignedR GET
 /queuelist/inprogress QueueListInprogressR GET
 /queuelist/finished QueueListFinishedR GET
-/job/#JobNumber/assign AssignJobR POST 
+/assign AssignR POST 
 |]
 
 instance Yesod JobQueueServer where
@@ -61,9 +61,49 @@ instance Yesod JobQueueServer where
 
 type Handler = GHandler JobQueueServer JobQueueServer 
 
+
 getHomeR = do 
   liftIO $ putStrLn "getHomeR called"
   defaultLayout [hamlet|Hello World!|]
+
+handleJobR :: JobNumber -> Handler RepHtmlJson
+handleJobR number = do 
+  r <- getRequest
+  let wr = reqWaiRequest r
+  liftIO (putStrLn (show $ requestHeaders wr))
+  case requestMethod wr of
+    "GET" -> getJobR number
+    "PUT" -> putJobR number 
+
+getJobR n = do
+  liftIO $ putStrLn "getJobR called"
+  JobQueueServer acid <- getYesod 
+  r <- liftIO $ query acid (QueryJob n)  
+  let rstr = case r of 
+               Nothing -> Left ("No such job" :: String)
+               Just j  -> Right j
+  defaultLayoutJson [hamlet| this is html found |] (toAeson rstr)
+
+putJobR n = do 
+  liftIO $ putStrLn "putJobR called"
+  JobQueueServer acid <- getYesod 
+  r <- getRequest
+  let wr = reqWaiRequest r 
+  bs' <- lift E.consume
+  let bs = S.concat bs' 
+  let parsed = (parseJson bs :: Maybe JobInfo)
+  case parsed of 
+    Just result -> do 
+      liftIO $ do 
+        putStrLn $ SC.unpack bs
+        putStrLn $ show result
+        update acid (UpdateJob n result) >>= print  
+      defaultLayoutJson [hamlet| this is html found |] (toAeson ("Success" :: String))
+    Nothing -> do
+      liftIO $ do 
+        putStrLn $ "result not parsed well : " 
+        putStrLn $ SC.unpack bs
+      defaultLayoutJson [hamlet| this is not html |] (toAeson ("Fail" :: String))
 
 postQueueR = do 
   liftIO $ putStrLn "postQueueR called" 
@@ -82,8 +122,6 @@ postQueueR = do
                  putStrLn $ "result not parsed well : " 
                  putStrLn $ SC.unpack bs
 
-getJobR n = do
-  liftIO $ putStrLn "getJobR called"
 
 getQueueListR = do 
   liftIO $ putStrLn "getQueueListR called" 
@@ -116,17 +154,36 @@ getQueueListFinishedR = do
       result = filter f (snd r)
   defaultLayoutJson [hamlet| this is html found |] (toAeson result)
 
-postAssignJobR n = do 
-  liftIO $ putStrLn "assignJobR called"  
+postAssignR = do 
+  liftIO $ putStrLn "assignR called"  
   JobQueueServer acid <- getYesod  
   r <- getRequest
-  let wr = reqWaiRequest r 
   bs' <- lift E.consume
   let bs = S.concat bs' 
   let parsed = (parseJson bs :: Maybe ClientConfiguration) 
   case parsed of 
-    Just result -> liftIO $ do 
-                     putStrLn $ show result
-    Nothing -> liftIO $ do 
-                 putStrLn $ "result not parsed well : " 
-                 S.putStrLn bs
+    Just cc -> do listall <- liftIO $ query acid QueryAll
+                  let unassigned = filter (\x->jobinfo_status x == Unassigned) (snd listall)
+                  firstJobAssignment cc unassigned
+    Nothing -> do liftIO $ do 
+                    putStrLn $ "result not parsed well : " 
+                    S.putStrLn bs
+                  defaultLayoutJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
+
+
+
+firstJobAssignment :: ClientConfiguration -> [JobInfo] 
+                   -> GGHandler JobQueueServer JobQueueServer (E.Iteratee SC.ByteString IO) RepHtmlJson 
+firstJobAssignment cc jobinfos = 
+    let compatible = filter (checkJobCompatibility cc) jobinfos
+    in  if null compatible 
+        then do 
+          liftIO $ putStrLn "No Compatible Job!"
+          defaultLayoutJson [hamlet| no such job |] (toAeson (Left "no compatible job" :: Either String JobInfo)) 
+        else do 
+          let assignedCandidate = head compatible
+          liftIO $ putStrLn "Job Found!"
+          liftIO $ putStrLn (show assignedCandidate) 
+          defaultLayoutJson [hamlet| this is html found |] (toAeson (Right assignedCandidate :: Either String JobInfo))
+
+
