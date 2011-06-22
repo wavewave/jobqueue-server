@@ -88,6 +88,20 @@ instance FromAeson String where
 instance ToAeson String where
   toAeson = atomizeStr  
 
+instance (ToAeson a, ToAeson b) => ToAeson (Either a b) where
+  toAeson (Left a) = Object $ 
+                        M.fromList [ ("Type", "Left")
+                                   , ("Content", toAeson a) ] 
+  toAeson (Right b) = Object $ 
+                        M.fromList [ ("Type", "Right")
+                                   , ("Content", toAeson b) ] 
+
+instance (FromAeson a, FromAeson b) => FromAeson (Either a b) where
+  fromAeson (Object m) = do t <- M.lookup "Type" m
+                            case t of 
+                              "Left"  -> Left  <$> (M.lookup "Content" m >>= fromAeson)
+                              "Right" -> Right <$> (M.lookup "Content" m >>= fromAeson)
+
 instance ToAeson MachineType where
   toAeson TeVatron = Object (M.singleton "Type" (String "TeVatron"))
   toAeson LHC7     = Object (M.singleton "Type" (String "LHC7"))
@@ -322,11 +336,12 @@ instance ToAeson JobInfo where
                   , ("status", toAeson . jobinfo_status $ i) ]
          
 instance ToAeson ClientConfiguration where
-  toAeson (ClientConfiguration computer math pbs) = 
+  toAeson (ClientConfiguration computer math pbs montecarlo) = 
       Object $ M.fromList 
                  [ ("computer", toAeson computer )
                  , ("mathematica", Bool math)
-                 , ("pbs", Bool pbs )  ] 
+                 , ("pbs", Bool pbs )  
+                 , ("montecarlo", Bool montecarlo) ] 
 
 instance FromAeson ClientConfiguration where
   fromAeson (Object m) = 
@@ -334,5 +349,6 @@ instance FromAeson ClientConfiguration where
       <$> lookupfunc "computer" 
       <*> lookupfunc "mathematica" 
       <*> lookupfunc "pbs" 
+      <*> lookupfunc "montecarlo"
     where lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing

@@ -151,7 +151,7 @@ instance SafeCopy EventSet where
          r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
                     <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
          return (EventSet p r)
-      "AxiGluon" -> do 
+      "Axigluon_AV_MG" -> do 
          (mp :: ModelParam AxiGluon) <- safeGet 
          let p = PS mv AxiGluon pr pb wn 
          r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
