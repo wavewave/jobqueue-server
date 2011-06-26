@@ -6,7 +6,7 @@
 
 ----------------------------------------------------
 --
--- Module       : HEP.Automation.JobQueue.JobQueueYesod
+-- Module       : HEP.Automation.JobQueue.Server.Yesod
 -- Copyright    : Ian-Woo Kim
 -- License      : BSD3
 -- 
@@ -19,7 +19,7 @@
 ----------------------------------------------------
 
 
-module HEP.Automation.JobQueue.JobQueueYesod where 
+module HEP.Automation.JobQueue.Server.Yesod where 
 
 import Yesod hiding (update)
 
@@ -30,6 +30,7 @@ import qualified Data.Enumerator as E
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as SC
 
+import Data.Aeson.Types hiding (parse)
 import Data.Aeson.Parser
 import Data.Attoparsec
 
@@ -38,13 +39,13 @@ import HEP.Automation.JobQueue.JobJson
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config
 
+import qualified Data.Map as M
+import qualified Data.IntMap as IM 
 
-import HEP.Automation.JobQueue.QueueServerWork
 
 import Data.Acid 
 
 data JobQueueServer = JobQueueServer { server_acid :: AcidState JobInfoQueue } 
-
 mkYesod "JobQueueServer" [parseRoutes|
 / HomeR GET
 /job/#JobNumber JobR 
@@ -60,6 +61,7 @@ instance Yesod JobQueueServer where
   approot _ = ""
 
 type Handler = GHandler JobQueueServer JobQueueServer 
+
 
 
 getHomeR = do 
@@ -171,6 +173,27 @@ postAssignR = do
                   defaultLayoutJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
 
 
+getConfigWebDAVR :: Handler ()  -- RepHtmlJson 
+getConfigWebDAVR = do 
+  liftIO $ putStrLn "getConfigWebDAVR called" 
+
+
+
+
+jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
+jsonJobInfoQueue (lastid,jobinfos) = 
+  let lastidjson = toAeson lastid 
+      jobinfosjson = toAeson jobinfos
+  in  Object $ M.fromList [ ("lastid", lastidjson)
+                          , ("map", jobinfosjson) ]
+
+checkJobCompatibility :: ClientConfiguration -> JobInfo -> Bool 
+checkJobCompatibility (ClientConfiguration cname math pbs montecarlo) jobinfo =
+  case jobinfo_detail jobinfo of 
+    EventGen _ -> montecarlo
+    MathAnal _ -> math || pbs 
+
+
 
 firstJobAssignment :: ClientConfiguration -> [JobInfo] 
                    -> GGHandler JobQueueServer JobQueueServer (E.Iteratee SC.ByteString IO) RepHtmlJson 
@@ -185,5 +208,6 @@ firstJobAssignment cc jobinfos =
           liftIO $ putStrLn "Job Found!"
           liftIO $ putStrLn (show assignedCandidate) 
           defaultLayoutJson [hamlet| this is html found |] (toAeson (Right assignedCandidate :: Either String JobInfo))
+
 
 

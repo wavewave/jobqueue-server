@@ -1,6 +1,6 @@
 module Main where
 
-import HEP.Automation.JobQueue.JobQueueYesod
+import HEP.Automation.JobQueue.Server.Yesod
 import HEP.Automation.JobQueue.JobQueue 
 
 import Data.Acid 

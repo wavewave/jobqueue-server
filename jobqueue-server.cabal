@@ -1,5 +1,5 @@
 Name:		jobqueue-server
-Version:	0.0.7.0
+Version:	0.0.8.0
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
@@ -25,9 +25,7 @@ Library
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
                  jobqueue-common
   Exposed-Modules: 
-                   HEP.Automation.JobQueue.JobQueueYesod
-                   HEP.Automation.JobQueue.QueueServerWork
-  --                   HEP.Automation.JobQueue.Access
-  --                   HEP.Automation.JobQueue.Test
+                   HEP.Automation.JobQueue.Server.Yesod
+
 
 		 
