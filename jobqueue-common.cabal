@@ -16,8 +16,7 @@ Library
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
                  madgraph-auto==0.5.*, cereal >= 0.3.1.0, madgraph-auto-model, 
-                 aeson, attoparsec, vector, text, parsec, configparser, 
-                 bytestring 
+                 aeson, attoparsec, vector, text, parsec, bytestring 
   Exposed-Modules: 
                    HEP.Automation.JobQueue.JobType
                    HEP.Automation.JobQueue.JobQueue
