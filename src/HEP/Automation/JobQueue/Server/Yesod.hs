@@ -42,10 +42,16 @@ import HEP.Automation.JobQueue.Config
 import qualified Data.Map as M
 import qualified Data.IntMap as IM 
 
-
 import Data.Acid 
 
-data JobQueueServer = JobQueueServer { server_acid :: AcidState JobInfoQueue } 
+import HEP.Automation.JobQueue.Server.Type
+import HEP.Automation.JobQueue.Server.Work
+
+data JobQueueServer = JobQueueServer { 
+  server_acid :: AcidState JobInfoQueue,
+  server_conf :: ServerConfig 
+} 
+
 mkYesod "JobQueueServer" [parseRoutes|
 / HomeR GET
 /job/#JobNumber JobR 
@@ -55,6 +61,7 @@ mkYesod "JobQueueServer" [parseRoutes|
 /queuelist/inprogress QueueListInprogressR GET
 /queuelist/finished QueueListFinishedR GET
 /assign AssignR POST 
+/config/webdav ConfigWebDAVR GET
 |]
 
 instance Yesod JobQueueServer where
@@ -79,7 +86,7 @@ handleJobR number = do
 
 getJobR n = do
   liftIO $ putStrLn "getJobR called"
-  JobQueueServer acid <- getYesod 
+  JobQueueServer acid _ <- getYesod 
   r <- liftIO $ query acid (QueryJob n)  
   let rstr = case r of 
                Nothing -> Left ("No such job" :: String)
@@ -88,7 +95,7 @@ getJobR n = do
 
 putJobR n = do 
   liftIO $ putStrLn "putJobR called"
-  JobQueueServer acid <- getYesod 
+  JobQueueServer acid _ <- getYesod 
   r <- getRequest
   let wr = reqWaiRequest r 
   bs' <- lift E.consume
@@ -109,7 +116,7 @@ putJobR n = do
 
 postQueueR = do 
   liftIO $ putStrLn "postQueueR called" 
-  JobQueueServer acid <- getYesod  
+  JobQueueServer acid _ <- getYesod  
   r <- getRequest
   let wr = reqWaiRequest r 
   bs' <- lift E.consume
@@ -127,13 +134,13 @@ postQueueR = do
 
 getQueueListR = do 
   liftIO $ putStrLn "getQueueListR called" 
-  JobQueueServer acid <- getYesod
+  JobQueueServer acid _ <- getYesod
   r <- liftIO $ query acid QueryAll
   defaultLayoutJson [hamlet| this is html found |] (jsonJobInfoQueue r)
 
 getQueueListUnassignedR = do 
   liftIO $ putStrLn "getQueueListUnassignedR called"
-  JobQueueServer acid <- getYesod
+  JobQueueServer acid _ <- getYesod
   r <- liftIO $ query acid QueryAll
   let f j = jobinfo_status j == Unassigned
       result = filter f (snd r)
@@ -141,7 +148,7 @@ getQueueListUnassignedR = do
 
 getQueueListInprogressR = do 
   liftIO $ putStrLn "getQueueListInprogressR called"
-  JobQueueServer acid <- getYesod
+  JobQueueServer acid _ <- getYesod
   r <- liftIO $ query acid QueryAll 
   let f j = let s = jobinfo_status j
             in (s == Assigned) || (s == BeingCalculated) || (s == BeingTested)
@@ -150,7 +157,7 @@ getQueueListInprogressR = do
 
 getQueueListFinishedR = do 
   liftIO $ putStrLn "getQueueListFinishedR called"
-  JobQueueServer acid <- getYesod
+  JobQueueServer acid _ <- getYesod
   r <- liftIO $ query acid QueryAll 
   let f j = jobinfo_status j == Finished
       result = filter f (snd r)
@@ -158,7 +165,7 @@ getQueueListFinishedR = do
 
 postAssignR = do 
   liftIO $ putStrLn "assignR called"  
-  JobQueueServer acid <- getYesod  
+  JobQueueServer acid _ <- getYesod  
   r <- getRequest
   bs' <- lift E.consume
   let bs = S.concat bs' 
@@ -173,13 +180,13 @@ postAssignR = do
                   defaultLayoutJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
 
 
-getConfigWebDAVR :: Handler ()  -- RepHtmlJson 
+getConfigWebDAVR :: Handler RepHtmlJson 
 getConfigWebDAVR = do 
+  JobQueueServer _ sconf  <- getYesod  
+  let wdav = server_webdav sconf 
   liftIO $ putStrLn "getConfigWebDAVR called" 
-
-
-
-
+  defaultLayoutJson [hamlet| this is html |] (toAeson wdav) 
+              
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 
   let lastidjson = toAeson lastid 

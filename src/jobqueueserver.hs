@@ -1,6 +1,7 @@
 module Main where
 
 import HEP.Automation.JobQueue.Server.Yesod
+import HEP.Automation.JobQueue.Server.Work
 import HEP.Automation.JobQueue.JobQueue 
 
 import Data.Acid 
@@ -10,4 +11,5 @@ import Yesod
 main = do 
   putStrLn "jobqueueserver"
   acid <- openAcidState (JobInfoQueue 0 M.empty) 
-  warpDebug 3600 (JobQueueServer acid)
+  sconf <- serverConfigParser "test.conf"
+  warpDebug 3600 (JobQueueServer acid sconf)
