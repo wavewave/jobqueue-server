@@ -24,5 +24,5 @@ commandLineProcess (Assign conf) = do
   putStrLn "assign called" 
   lc <- readConfigFile conf
   jobqueueAssign (lc_clientConfiguration lc) 
-
+  getWebDAVInfo 
 

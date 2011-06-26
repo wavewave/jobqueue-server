@@ -2,7 +2,7 @@
 
 module HEP.Automation.JobQueue.Client.Job where
 
-import Network.HTTP.Types
+import Network.HTTP.Types hiding (statusCode)
 import Network.HTTP.Enumerator
 import qualified Data.ByteString.Lazy as L 
 import qualified Data.ByteString.Lazy.Char8 as C
@@ -12,8 +12,12 @@ import HEP.Automation.JobQueue.Config
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.JobJson
 
+import HEP.Storage.WebDAV.Type
 
+import Data.Aeson.Types
 import Data.Aeson.Encode
+
+
 
 jobqueueGet :: JobNumber -> IO () 
 jobqueueGet jid = do 
@@ -86,7 +90,7 @@ jobqueueFinished   = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
-jobqueueAssign :: ClientConfiguration -> IO () 
+jobqueueAssign :: ClientConfiguration -> IO (Maybe JobInfo) 
 jobqueueAssign cc = do 
   putStrLn $ "Assign request of job "
   manager <- newManager 
@@ -105,10 +109,41 @@ jobqueueAssign cc = do
                              putStrLn (show jinfo)
                              let newjob = jinfo { jobinfo_status = Assigned } 
                              jobqueuePut newjob 
-                             startjob newjob
+                             return (Just newjob)
     Just (Left msg)    -> do putStrLn "Error message from server" 
                              putStrLn msg
+                             return Nothing
     Nothing            -> do putStrLn "Parsing failed"
+                             return Nothing 
 
 startjob :: JobInfo -> IO () 
 startjob _ = return ()
+
+getWebDAVInfo :: IO ()
+getWebDAVInfo = do 
+  r <- getJsonFromServer "/config/webdav" 
+  case r of 
+    Nothing -> putStrLn "Nothing"
+    Just value -> do 
+      let c = fromAeson value :: Maybe WebDAVServer
+      putStrLn (show c)
+--  putStrLn (show (statusCode r))
+--  putStrLn (show (responseHeaders r))
+--  putStrLn (show (responseBody r))
+
+
+
+
+getJsonFromServer :: String -> IO (Maybe Value)
+getJsonFromServer api = do 
+  manager <- newManager
+  requestget <- parseUrl (SC.pack ("http://127.0.0.1:3600" ++ api))
+  let requestgetjson = requestget { 
+        requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
+      } 
+  r <- httpLbs requestgetjson manager 
+  if statusCode r == 200 
+    then return . parseJson . SC.concat . C.toChunks . responseBody $ r
+    else return Nothing
+
+ 
