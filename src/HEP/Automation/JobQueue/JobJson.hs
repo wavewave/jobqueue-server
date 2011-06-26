@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances,
+             UndecidableInstances #-}
 
 ----------------------------------------------------
 --
@@ -40,6 +41,9 @@ import HEP.Automation.JobQueue.JobType
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config 
 
+import Data.Data
+import qualified Data.Aeson.Generic as G
+
 
 --import Control.Applicative
 
@@ -55,6 +59,15 @@ atomize = atomizeStr . show
 
 atomizeStr :: String -> Value
 atomizeStr = String . pack
+
+instance (Data a) => ToAeson a where
+  toAeson = G.toJSON
+
+instance (Data a) => FromAeson a where
+  fromAeson v = let r = G.fromJSON v 
+                in case r of 
+                     Success a -> return a 
+                     Error str -> Nothing  
 
 instance ToAeson Bool where
   toAeson = Bool 
