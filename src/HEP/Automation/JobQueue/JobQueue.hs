@@ -29,6 +29,7 @@ import Data.Acid
 
 
 import HEP.Automation.JobQueue.JobType
+import HEP.Storage.WebDAV.Type
 
 import Prelude hiding (length)
 -- import Data.Sequence
@@ -44,8 +45,12 @@ data JobInfo = JobInfo {
   jobinfo_status :: JobStatus
 } deriving (Typeable, Show) 
 
-data JobDetail = EventGen { jobdetail_evset :: EventSet }  
-               | MathAnal { jobdetail_evset :: EventSet } 
+data JobDetail = EventGen { jobdetail_evset :: EventSet, 
+                            jobdetail_remotedir :: WebDAVRemoteDir
+                          }  
+               | MathAnal { jobdetail_evset :: EventSet, 
+                            jobdetail_remotedir :: WebDAVRemoteDir
+                          } 
                deriving Show
 
 data JobStatus = Unassigned 

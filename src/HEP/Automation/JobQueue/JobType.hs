@@ -30,6 +30,8 @@ import HEP.Automation.MadGraph.SetupType
 import HEP.Automation.MadGraph.Model.AxiGluon 
 import HEP.Automation.MadGraph.Model.Octet
 
+import HEP.Storage.WebDAV.Type 
+
 import Data.SafeCopy
 
 data EventSet = forall a. (Model a) => 
@@ -174,7 +176,9 @@ instance SafeCopy MadGraphVersion where
                            5 -> return MadGraph5
 
 
-
+instance SafeCopy WebDAVRemoteDir where
+  putCopy (WebDAVRemoteDir str) = contain $ safePut str
+  getCopy = contain $ WebDAVRemoteDir <$> safeGet
 
 
 

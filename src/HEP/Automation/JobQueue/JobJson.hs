@@ -27,6 +27,8 @@ import HEP.Automation.MadGraph.SetupType
 
 import HEP.Automation.MadGraph.Model.AxiGluon
 
+import HEP.Storage.WebDAV.Type
+
 import Data.Text hiding (map)
 import Data.Attoparsec 
 import Data.Attoparsec.Number 
@@ -67,7 +69,7 @@ instance (Data a) => FromAeson a where
   fromAeson v = let r = G.fromJSON v 
                 in case r of 
                      Success a -> return a 
-                     Error str -> Nothing  
+                     Error _str -> Nothing  
 
 instance ToAeson Bool where
   toAeson = Bool 
@@ -93,6 +95,7 @@ instance FromAeson Double where
 
 instance (FromAeson a) => FromAeson [a] where
   fromAeson (Array vec) = mapM fromAeson (V.toList vec) 
+  fromAeson _ = Nothing
 
 instance (ToAeson a) => ToAeson [a] where
   toAeson = Array . V.fromList . map toAeson    
@@ -117,6 +120,8 @@ instance (FromAeson a, FromAeson b) => FromAeson (Either a b) where
                             case t of 
                               "Left"  -> Left  <$> (M.lookup "Content" m >>= fromAeson)
                               "Right" -> Right <$> (M.lookup "Content" m >>= fromAeson)
+                              _ -> Just (Left undefined) 
+  fromAeson _ = Nothing
 
 instance ToAeson MachineType where
   toAeson TeVatron = Object (M.singleton "Type" (String "TeVatron"))
@@ -239,7 +244,7 @@ instance (Model a) => ToAeson (ModelParam a) where
               in  String (pack str) 
 
 instance (Model a) => FromAeson (ModelParam a) where
-  fromAeson (String value) = Just . interpreteParam . unpack $ value
+  fromAeson (String str) = Just . interpreteParam . unpack $ str
   fromAeson _ = Nothing 
 
 --instance (Model a) => FromAeson a where
@@ -320,21 +325,32 @@ instance FromAeson EventSet where
   fromAeson _ = Nothing 
 
 instance ToAeson JobDetail where
-  toAeson (EventGen evset) = Object $ 
+  toAeson (EventGen evset rdir) = Object $ 
                                M.fromList [ ( "JobType",  String "EventGen" ) 
-                                          , ( "evset", toAeson evset) ]
-  toAeson (MathAnal evset) = Object $ 
+                                          , ( "evset", toAeson evset) 
+                                          , ( "rdir",  toAeson rdir) ]
+  toAeson (MathAnal evset rdir) = Object $ 
                                M.fromList [ ( "JobType",  String "MathAnal" )
-                                          , ( "evset", toAeson evset) ]
+                                          , ( "evset", toAeson evset)
+                                          , ( "rdir",  toAeson rdir) ]
 
 instance FromAeson JobDetail where
   fromAeson (Object m) = do
     t <- M.lookup "JobType" m 
     case t of 
       "EventGen" -> EventGen <$> (M.lookup "evset" m >>= fromAeson) 
+                             <*> (M.lookup "rdir" m >>= fromAeson)
       "MathAnal" -> MathAnal <$> (M.lookup "evset" m >>= fromAeson)
+                             <*> (M.lookup "rdir" m >>= fromAeson)
       _ -> Nothing 
   fromAeson _ = Nothing
+
+instance ToAeson WebDAVRemoteDir where
+  toAeson (WebDAVRemoteDir rdir) = toAeson rdir 
+
+instance FromAeson WebDAVRemoteDir where
+  fromAeson v = WebDAVRemoteDir <$> fromAeson v
+
 
 instance ToAeson JobStatus where
   toAeson Unassigned = String "Unassigned"
