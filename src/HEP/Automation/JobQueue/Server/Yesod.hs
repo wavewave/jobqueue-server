@@ -197,8 +197,8 @@ jsonJobInfoQueue (lastid,jobinfos) =
 checkJobCompatibility :: ClientConfiguration -> JobInfo -> Bool 
 checkJobCompatibility (ClientConfiguration cname math pbs montecarlo) jobinfo =
   case jobinfo_detail jobinfo of 
-    EventGen _ -> montecarlo
-    MathAnal _ -> math || pbs 
+    EventGen _ _ -> montecarlo
+    MathAnal _ _ -> math || pbs 
 
 
 
