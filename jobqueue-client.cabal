@@ -36,7 +36,7 @@ Library
                jobqueue-common, parsec, pipeline, 
                http-types, http-enumerator < 0.6, 
                madgraph-auto, bytestring, aeson, cmdargs, 
-               webdav-manager
+               webdav-manager, filepath
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Client.Type 
                    HEP.Automation.JobQueue.Client.Command                 
