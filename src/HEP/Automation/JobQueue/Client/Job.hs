@@ -18,9 +18,9 @@ import HEP.Storage.WebDAV.Type
 import Data.Aeson.Types
 import Data.Aeson.Encode
 
+type Url = String 
 
-
-jobqueueGet :: String -> JobNumber -> IO () 
+jobqueueGet :: Url -> JobNumber -> IO () 
 jobqueueGet url jid = do 
   putStrLn "get" 
   manager <- newManager
@@ -31,7 +31,7 @@ jobqueueGet url jid = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
-jobqueuePut :: String -> JobInfo -> IO () 
+jobqueuePut :: Url -> JobInfo -> IO (Maybe JobInfo)
 jobqueuePut url jinfo = do 
   putStrLn "put" 
   manager <- newManager 
@@ -46,8 +46,9 @@ jobqueuePut url jinfo = do
                    } 
   r <- httpLbs requestput manager 
   putStrLn $ show r 
+  return (Just jinfo)
 
-jobqueueList :: String -> IO () 
+jobqueueList :: Url -> IO () 
 jobqueueList url = do 
   putStrLn "list"
   manager <- newManager 
@@ -58,7 +59,7 @@ jobqueueList url = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
-jobqueueUnassigned :: String -> IO () 
+jobqueueUnassigned :: Url -> IO () 
 jobqueueUnassigned url = do 
   putStrLn "jobs unassigned:"
   manager <- newManager 
@@ -69,7 +70,7 @@ jobqueueUnassigned url = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
-jobqueueInprogress :: String -> IO ()
+jobqueueInprogress :: Url -> IO ()
 jobqueueInprogress url = do 
   putStrLn "jobs in progress:"
   manager <- newManager 
@@ -80,7 +81,7 @@ jobqueueInprogress url = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
-jobqueueFinished :: String -> IO ()
+jobqueueFinished :: Url -> IO ()
 jobqueueFinished url = do 
   putStrLn "jobs finished:"
   manager <- newManager 
@@ -91,7 +92,7 @@ jobqueueFinished url = do
   r <- httpLbs requestgetjson manager 
   putStrLn $ show r 
 
-jobqueueAssign :: String -> ClientConfiguration -> IO (Maybe JobInfo) 
+jobqueueAssign :: Url -> ClientConfiguration -> IO (Maybe JobInfo) 
 jobqueueAssign url cc = do 
   putStrLn $ "Assign request of job "
   manager <- newManager 
@@ -106,11 +107,8 @@ jobqueueAssign url cc = do
   r <- httpLbs requestpost manager 
   let result = ( parseJson  . SC.concat . C.toChunks .  responseBody ) r :: Maybe (Either String JobInfo) 
   case result of 
-    Just (Right jinfo) -> do putStrLn "Job assigned"
-                             putStrLn (show jinfo)
-                             let newjob = jinfo { jobinfo_status = Assigned } 
-                             jobqueuePut url newjob 
-                             return (Just newjob)
+    Just (Right jinfo) -> do return (Just jinfo)
+
     Just (Left msg)    -> do putStrLn "Error message from server" 
                              putStrLn msg
                              return Nothing
@@ -118,16 +116,26 @@ jobqueueAssign url cc = do
                              return Nothing 
 
 
-getWebDAVInfo :: String -> IO ()
+confirmAssignment :: Url -> JobInfo -> IO (Maybe JobInfo)
+confirmAssignment url jinfo = do  
+  putStrLn "try confirmation"
+  putStrLn (show jinfo)
+  case jobinfo_status jinfo of 
+    Unassigned -> do 
+      let newjob = jinfo { jobinfo_status = Assigned } 
+      jobqueuePut url newjob 
+    _ -> return Nothing 
+
+getWebDAVInfo :: Url -> IO ()
 getWebDAVInfo url = do 
-  r <- getJsonFromServer url "/config/webdav" 
+  r <- getJsonFromServer url "config/webdav" 
   case r of 
     Nothing -> putStrLn "Nothing"
     Just value -> do 
       let c = fromAeson value :: Maybe WebDAVServer
       putStrLn (show c)
 
-getJsonFromServer :: String -> String -> IO (Maybe Value)
+getJsonFromServer :: Url -> String -> IO (Maybe Value)
 getJsonFromServer url api = do 
   manager <- newManager
   requestget <- parseUrl (SC.pack (url </> api))

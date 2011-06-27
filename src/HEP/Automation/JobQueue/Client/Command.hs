@@ -17,6 +17,3 @@ commandLineProcess (Start conf) = do
   putStrLn "start called" 
   readConfigFile conf >>= startWaitPhase
 
---  jobqueueAssign (lc_clientConfiguration lc) 
---  getWebDAVInfo 
-
