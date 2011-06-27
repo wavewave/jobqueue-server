@@ -4,7 +4,7 @@ module HEP.Automation.JobQueue.Client.Command where
 
 import HEP.Automation.Pipeline.Config 
 import HEP.Automation.JobQueue.Client.Type 
-import HEP.Automation.JobQueue.Client.Job
+import HEP.Automation.JobQueue.Client.Phase
 
 commandLineProcess :: JobClient -> IO () 
 commandLineProcess (Get jid conf) = do 

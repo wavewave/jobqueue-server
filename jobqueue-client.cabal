@@ -39,7 +39,8 @@ Library
                webdav-manager, filepath
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Client.Type 
-                   HEP.Automation.JobQueue.Client.Command                 
                    HEP.Automation.JobQueue.Client.Job
+                   HEP.Automation.JobQueue.Client.Phase
+                   HEP.Automation.JobQueue.Client.Command                 
 
 		 
