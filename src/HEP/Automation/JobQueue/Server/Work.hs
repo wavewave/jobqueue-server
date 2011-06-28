@@ -1,22 +1,25 @@
 module HEP.Automation.JobQueue.Server.Work where
 
 import Text.Parsec 
-import HEP.Parser.Config
 import Control.Monad.Identity
-import Control.Applicative
+import Control.Exception (bracket)
 
 import HEP.Parser.Config
 import HEP.Storage.WebDAV.Type 
 import HEP.Automation.JobQueue.Server.Type
 
+import System.IO
+
 serverConfigParser :: FilePath -> IO ServerConfig
 serverConfigParser fp = do 
   putStrLn ("parsing server config file " ++ fp )
-  str <- readFile fp
-  let r = parse configServer "" str
-  case r of 
-    Left msg -> error (show msg)
-    Right sconf -> return sconf 
+  bracket (openFile fp ReadMode) hClose $ \fh -> do 
+    str <- hGetContents fh -- readFile fp
+    let r = parse configServer "" str
+    r `seq` case r of 
+              Left msg -> error (show msg)
+              Right sconf -> return $! sconf 
+  
 
 configServer :: ParsecT String () Identity ServerConfig
 configServer = do 
