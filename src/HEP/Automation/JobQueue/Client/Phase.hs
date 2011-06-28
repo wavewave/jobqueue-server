@@ -30,9 +30,10 @@ import HEP.Automation.Pipeline.Config
 import HEP.Automation.Pipeline.Job
 
 import HEP.Automation.JobQueue.JobQueue
-
+-- import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Client.Job
 
+import HEP.Storage.WebDAV.Type
 
 startWaitPhase :: LocalConfiguration -> IO () 
 startWaitPhase lc = do 
@@ -49,20 +50,21 @@ startJobPhase :: LocalConfiguration -> JobInfo -> IO ()
 startJobPhase lc jinfo = do 
   putStrLn "starting Job Phase"
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
-  
   -- check job here
   r <- confirmAssignment url jinfo 
   case r of
     Nothing -> startWaitPhase lc
     Just jinfo' -> do 
       putStrLn "job assigned well"
-      r' <- getWebDAVInfo url 
+      r' <- getWebDAVInfo url
+---      let sconf = (WebDAVServer "test")  -- for debug
       case r' of 
         Nothing -> startWaitPhase lc
         Just sconf -> do 
           let wc = WorkConfig lc sconf
               job = jobMatch jinfo
               back = backToUnassigned url jinfo >> startWaitPhase lc
+          putStrLn $ "Work Configuration = " ++ show wc
           b1 <- pipeline_checkSystem job wc jinfo
           if not b1 
             then back
@@ -82,14 +84,8 @@ startJobPhase lc jinfo = do
                         then back
                         else do
                           changeStatus url jinfo Finished
-                          threadDelay 10000000
+                          threadDelay 1000000 -- 10000000
                           return ()
-
---          testJob_checkSystem wc jinfo
-
-  -- main job will be here
- 
-  -- return to Wait Phase
   startWaitPhase lc
 
 startGetPhase :: LocalConfiguration -> Int -> IO () 
