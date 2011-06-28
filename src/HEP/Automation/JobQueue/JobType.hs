@@ -27,12 +27,16 @@ import HEP.Automation.MadGraph.Machine
 import HEP.Automation.MadGraph.UserCut
 import HEP.Automation.MadGraph.SetupType
 
-import HEP.Automation.MadGraph.Model.AxiGluon 
-import HEP.Automation.MadGraph.Model.Octet
+import HEP.Automation.MadGraph.ModelParser
+
+{-import HEP.Automation.MadGraph.Model.AxiGluon 
+import HEP.Automation.MadGraph.Model.Octet -}
 
 import HEP.Storage.WebDAV.Type 
 
 import Data.SafeCopy
+import Data.Serialize.Get
+
 
 data EventSet = forall a. (Model a) => 
   EventSet {
@@ -147,7 +151,26 @@ instance SafeCopy EventSet where
     pr <- safeGet  
     pb <- safeGet 
     wn <- safeGet 
-    case modelstr of 
+
+    let mkEventSet :: ModelBox -> Get EventSet
+        mkEventSet (ModelBox mdl) = 
+            EventSet <$> getPSetup mdl <*> getRSetup mdl 
+
+        getPSetup :: (Model a) => a -> Get (ProcessSetup a)
+        getPSetup mdl = return (PS mv mdl pr pb wn)
+
+        getRSetup :: (Model a) => a -> Get (RunSetup a)
+        getRSetup _mdl = RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                            <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                            <*> safeGet <*> safeGet
+
+    let maybemodelbox = modelParse modelstr 
+    case maybemodelbox of 
+      Just modelbox -> mkEventSet modelbox 
+      Nothing -> error $ "modelname : " ++ modelstr ++ " is strange!"
+ 
+{-
+ case modelstr of 
       "DummyModel" -> do 
          (mp :: ModelParam DummyModel) <- safeGet 
          let p = PS mv DummyModel pr pb wn 
@@ -166,6 +189,7 @@ instance SafeCopy EventSet where
          r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
                     <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
          return (EventSet p r)
+-}
 
 instance SafeCopy PGSJetAlgorithm where
   putCopy Cone = contain $ safePut (1 :: Int) 
