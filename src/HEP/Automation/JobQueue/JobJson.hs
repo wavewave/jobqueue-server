@@ -25,7 +25,8 @@ import HEP.Automation.MadGraph.Machine
 import HEP.Automation.MadGraph.UserCut
 import HEP.Automation.MadGraph.SetupType 
 
-import HEP.Automation.MadGraph.Model.AxiGluon
+-- import HEP.Automation.MadGraph.Model.AxiGluon
+import HEP.Automation.MadGraph.ModelParser
 
 import HEP.Storage.WebDAV.Type
 
@@ -247,9 +248,6 @@ instance (Model a) => FromAeson (ModelParam a) where
   fromAeson (String str) = Just . interpreteParam . unpack $ str
   fromAeson _ = Nothing 
 
---instance (Model a) => FromAeson a where
--- fromAeson (String str) = modelFromString . unpack $ str  
-
 modelFromAeson :: (Model a) => Value -> Maybe a 
 modelFromAeson (String str) = modelFromString . unpack $ str
 modelFromAeson _ = Nothing
@@ -287,6 +285,7 @@ instance (Model a) => ToAeson (RunSetup a) where
                     , ("pythia"   , toAeson . pythia $ p)
                     , ("usercut"  , toAeson . usercut $ p)
                     , ("pgs"      , toAeson . pgs $ p) 
+                    , ("jetalgo"  , toAeson . jetalgo $ p)
                     , ("setnum"   , Number . I . fromIntegral . setnum $ p)] 
 
 instance (Model a) => FromAeson (RunSetup a) where
@@ -295,8 +294,8 @@ instance (Model a) => FromAeson (RunSetup a) where
        <*> lookupfunc "machine" <*> lookupfunc "rgrun" 
        <*> lookupfunc "rgscale" <*> lookupfunc "match"
        <*> lookupfunc "cut"     <*> lookupfunc "pythia"  
-       <*> lookupfunc "usercut" <*> lookupfunc "pgs"     
-       <*> lookupfunc "setnum"
+       <*> lookupfunc "usercut" <*> lookupfunc "pgs"
+       <*> lookupfunc "jetalgo" <*> lookupfunc "setnum"
     where lookupfunc str = M.lookup str m >>= fromAeson  
   fromAeson _ = Nothing
 
@@ -313,15 +312,19 @@ instance FromAeson EventSet where
       Object ps -> do 
         mdl <- M.lookup "model" ps
         case mdl of 
-          String "Axigluon_AV_MG" ->  
-            EventSet <$> (lookupfunc "psetup" :: Maybe (ProcessSetup AxiGluon)) 
-                     <*> (lookupfunc "rsetup" :: Maybe (RunSetup AxiGluon))
-          String "DummyModel" -> 
-            EventSet <$> (lookupfunc "psetup" :: Maybe (ProcessSetup DummyModel))
-                     <*> (lookupfunc "rsetup" :: Maybe (RunSetup DummyModel))
+          String str -> do 
+            modelbox <- modelParse (unpack str) 
+            mkEventSet modelbox   
           _ -> Nothing 
       _ -> Nothing
-    where lookupfunc str = M.lookup str m >>= fromAeson
+    where mkEventSet :: ModelBox -> Maybe EventSet
+          mkEventSet (ModelBox mdl) = 
+               EventSet <$> getPSetup mdl <*> getRSetup mdl 
+          getPSetup :: (Model a) => a -> Maybe (ProcessSetup a) 
+          getPSetup _mdl = lookupfunc "psetup" 
+          getRSetup :: (Model a) => a -> Maybe (RunSetup a)
+          getRSetup _mdl = lookupfunc "rsetup"
+          lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing 
 
 instance ToAeson JobDetail where
