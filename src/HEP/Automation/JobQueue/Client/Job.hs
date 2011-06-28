@@ -126,14 +126,23 @@ confirmAssignment url jinfo = do
       jobqueuePut url newjob 
     _ -> return Nothing 
 
-getWebDAVInfo :: Url -> IO ()
+backToUnassigned :: Url -> JobInfo -> IO (Maybe JobInfo)
+backToUnassigned url jinfo = changeStatus url jinfo Unassigned 
+
+changeStatus :: Url -> JobInfo -> JobStatus -> IO (Maybe JobInfo)
+changeStatus url jinfo status = do 
+  let newjob = jinfo { jobinfo_status = status } 
+  jobqueuePut url newjob
+
+getWebDAVInfo :: Url -> IO (Maybe WebDAVServer)
 getWebDAVInfo url = do 
   r <- getJsonFromServer url "config/webdav" 
   case r of 
-    Nothing -> putStrLn "Nothing"
+    Nothing -> return Nothing
     Just value -> do 
       let c = fromAeson value :: Maybe WebDAVServer
-      putStrLn (show c)
+      return c
+
 
 getJsonFromServer :: Url -> String -> IO (Maybe Value)
 getJsonFromServer url api = do 
