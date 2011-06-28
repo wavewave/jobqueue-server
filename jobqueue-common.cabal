@@ -23,6 +23,7 @@ Library
                    HEP.Automation.JobQueue.JobQueue
                    HEP.Automation.JobQueue.JobJson
                    HEP.Automation.JobQueue.Config
+                   HEP.Automation.JobQueue.Server.Type
 
 
 
