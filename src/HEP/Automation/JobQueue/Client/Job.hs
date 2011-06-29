@@ -1,8 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 module HEP.Automation.JobQueue.Client.Job where
 
 import System.FilePath
+
+import Control.Monad
+import Control.Applicative 
 
 import Network.HTTP.Types hiding (statusCode)
 import Network.HTTP.Enumerator
@@ -62,35 +65,32 @@ jobqueueList url = do
 jobqueueUnassigned :: Url -> IO () 
 jobqueueUnassigned url = do 
   putStrLn "jobs unassigned:"
-  withManager $ \manager -> do -- <- newManager 
-    requestget <- parseUrl (SC.pack (url </> "queuelist/unassigned"))
-    let requestgetjson = requestget { 
-          requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
-        }
-    r <- httpLbs requestgetjson manager 
-    putStrLn $ show r 
+  r <- getJsonFromServer url "queuelist/unassigned"
+  let (result :: Maybe [JobInfo]) = fromAeson =<< r 
+  case result of 
+    Just jinfos -> forM_ jinfos $ 
+                    \x-> do {putStrLn "-------------" ; putStrLn (show x)}
+    Nothing     -> do putStrLn "Parsing failed"
 
 jobqueueInprogress :: Url -> IO ()
 jobqueueInprogress url = do 
   putStrLn "jobs in progress:"
-  withManager $ \manager -> do -- <- newManager 
-    requestget <- parseUrl (SC.pack (url </> "queuelist/inprogress"))
-    let requestgetjson = requestget { 
-          requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
-        }
-    r <- httpLbs requestgetjson manager 
-    putStrLn $ show r 
+  r <- getJsonFromServer url "queuelist/inprogress"
+  let (result :: Maybe [JobInfo]) = fromAeson =<< r 
+  case result of 
+    Just jinfos -> forM_ jinfos $ 
+                    \x-> do {putStrLn "-------------" ; putStrLn (show x)}
+    Nothing     -> do putStrLn "Parsing failed"
 
 jobqueueFinished :: Url -> IO ()
 jobqueueFinished url = do 
   putStrLn "jobs finished:"
-  withManager $ \manager -> do --  <- newManager 
-    requestget <- parseUrl (SC.pack (url </> "queuelist/finished"))
-    let requestgetjson = requestget { 
-          requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
-        }
-    r <- httpLbs requestgetjson manager 
-    putStrLn $ show r 
+  r <- getJsonFromServer url "queuelist/finished"
+  let (result :: Maybe [JobInfo]) = fromAeson =<< r 
+  case result of 
+    Just jinfos -> forM_ jinfos $ 
+                    \x-> do {putStrLn "-------------" ; putStrLn (show x)}
+    Nothing     -> do putStrLn "Parsing failed"
 
 jobqueueAssign :: Url -> ClientConfiguration -> IO (Maybe JobInfo) 
 jobqueueAssign url cc = do 
