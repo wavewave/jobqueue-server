@@ -198,7 +198,8 @@ instance FromAeson UserCutSet where
                               String "NoUserCutDef" -> return NoUserCutDef
                               String "UserCutDef" -> do 
                                 d <- M.lookup "CutDetail" m
-                                fromAeson d
+                                uc <- fromAeson d 
+                                return (UserCutDef uc)
                               _ -> Nothing 
   fromAeson _ = Nothing
 
@@ -208,7 +209,7 @@ instance ToAeson UserCut where
     = Array . V.fromList . map (Number . D) $ [met,etacutlep,etcutlep,etacutjet,etcutjet]
 
 instance FromAeson UserCut where
-  fromAeson (Array v) | V.length v == 5 = do 
+  fromAeson (Array v) | V.length v == 5 = do
     met       <- fromAeson (v V.! 0)
     etacutlep <- fromAeson (v V.! 1)
     etcutlep  <- fromAeson (v V.! 2)
