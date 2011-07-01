@@ -16,4 +16,6 @@ commandLineProcess (List qtyp conf) = do
 commandLineProcess (Start conf) = do
   putStrLn "start called" 
   readConfigFile conf >>= startWaitPhase
-
+commandLineProcess (Revert jid conf) = do 
+  putStrLn $ "revert job " ++ show jid ++ " called"
+  readConfigFile conf >>= (flip startRevertPhase) jid

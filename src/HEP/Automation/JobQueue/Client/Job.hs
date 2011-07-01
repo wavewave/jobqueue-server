@@ -5,7 +5,6 @@ module HEP.Automation.JobQueue.Client.Job where
 import System.FilePath
 
 import Control.Monad
-import Control.Applicative 
 
 import Network.HTTP.Types hiding (statusCode)
 import Network.HTTP.Enumerator
@@ -23,16 +22,17 @@ import Data.Aeson.Encode
 
 type Url = String 
 
-jobqueueGet :: Url -> JobNumber -> IO () 
+jobqueueGet :: Url -> JobNumber -> IO (Either String JobInfo) 
 jobqueueGet url jid = do 
   putStrLn "get" 
-  withManager $ \manager -> do --  <- newManager
-    requestget <- parseUrl (url </> "job" </> (show jid))
-    let requestgetjson = requestget { 
-          requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
-        }
-    r <- httpLbs requestgetjson manager 
-    putStrLn $ show r 
+  r <- getJsonFromServer url ("job/" ++ show jid)
+  putStrLn $ show r
+  case r of 
+    Nothing -> return (Left "jobqueueGet got Nothing")
+    Just x  -> case fromAeson x of 
+                 Nothing -> return (Left "fromAeson in jobqueueGet error")
+                 Just e  -> return e
+  
 
 jobqueuePut :: Url -> JobInfo -> IO (Maybe JobInfo)
 jobqueuePut url jinfo = do 

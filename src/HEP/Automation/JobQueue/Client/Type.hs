@@ -7,6 +7,7 @@ import System.Console.CmdArgs
 data JobClient = Get    { jobid :: Int, config :: FilePath }
                | List   { queuetyp :: String, config :: FilePath }
                | Start  { config :: FilePath } 
+               | Revert { jobid :: Int, config :: FilePath } 
                deriving (Show,Data,Typeable)
 
 get :: JobClient 
@@ -18,5 +19,9 @@ list = List { queuetyp = "all" &= typ "QUEUETYP" &= argPos 0
 start :: JobClient 
 start = Start { config = "test.conf" }
 
+revert :: JobClient 
+revert = Revert { jobid = 0 &= typ "JOBID" &= argPos 0 
+                , config = "test.conf" }
+
 mode :: JobClient 
-mode = modes [get, list, start] 
+mode = modes [get, list, start, revert] 
