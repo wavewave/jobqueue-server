@@ -27,7 +27,7 @@ jobqueueGet :: Url -> JobNumber -> IO ()
 jobqueueGet url jid = do 
   putStrLn "get" 
   withManager $ \manager -> do --  <- newManager
-    requestget <- parseUrl (SC.pack (url </> "job" </> (show jid)))
+    requestget <- parseUrl (url </> "job" </> (show jid))
     let requestgetjson = requestget { 
           requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
         }
@@ -38,8 +38,8 @@ jobqueuePut :: Url -> JobInfo -> IO (Maybe JobInfo)
 jobqueuePut url jinfo = do 
   putStrLn "put" 
   withManager $ \manager -> do -- <- newManager 
-    requesttemp <- parseUrl (SC.pack (url </> "job" 
-                                          </> show (jobinfo_id jinfo)))
+    requesttemp <- parseUrl (url </> "job" 
+                                 </> show (jobinfo_id jinfo))
     let myrequestbody = RequestBodyLBS . encode . toAeson $ jinfo
     let requestput = requesttemp { 
                        method = methodPut, 
@@ -55,7 +55,7 @@ jobqueueList :: Url -> IO ()
 jobqueueList url = do 
   putStrLn "list"
   withManager $ \manager -> do -- <- newManager 
-    requestget <- parseUrl (SC.pack (url </> "queuelist"))
+    requestget <- parseUrl (url </> "queuelist")
     let requestgetjson = requestget { 
           requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
         }
@@ -96,7 +96,7 @@ jobqueueAssign :: Url -> ClientConfiguration -> IO (Maybe JobInfo)
 jobqueueAssign url cc = do 
   putStrLn $ "Assign request of job "
   withManager $ \manager -> do -- <- newManager 
-    requesttemp <- parseUrl (SC.pack (url </> "assign"))
+    requesttemp <- parseUrl (url </> "assign")
     let ccjson = encode $ toAeson cc
         myrequestbody = RequestBodyLBS ccjson 
         requestpost = requesttemp { 
@@ -146,7 +146,7 @@ getWebDAVInfo url = do
 getJsonFromServer :: Url -> String -> IO (Maybe Value)
 getJsonFromServer url api = do 
   withManager $ \manager -> do
-    requestget <- parseUrl (SC.pack (url </> api))
+    requestget <- parseUrl (url </> api)
     let requestgetjson = requestget { 
           requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
         } 

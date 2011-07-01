@@ -57,7 +57,6 @@ startJobPhase lc jinfo = do
     Just jinfo' -> do 
       putStrLn "job assigned well"
       r' <- getWebDAVInfo url
----      let sconf = (WebDAVServer "test")  -- for debug
       case r' of 
         Nothing -> startWaitPhase lc
         Just sconf -> do 
@@ -84,7 +83,7 @@ startJobPhase lc jinfo = do
                         then back
                         else do
                           changeStatus url jinfo Finished
-                          threadDelay 1000000 -- 10000000
+                          threadDelay 10000000
                           return ()
   startWaitPhase lc
 
