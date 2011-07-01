@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances,
              UndecidableInstances #-}
 
-----------------------------------------------------
+-----------------------------------------------------
 --
 -- Module       : HEP.Automation.JobQueue.JobJson
 -- Copyright    : Ian-Woo Kim
@@ -91,6 +91,7 @@ instance ToAeson Double where
 
 instance FromAeson Double where
   fromAeson (Number (D val)) = Just val 
+  fromAeson (Number (I val)) = Just . fromIntegral $ val
   fromAeson _ = Nothing
 
 
@@ -371,7 +372,7 @@ instance FromAeson JobStatus where
   fromAeson (String "Finished") = Just Finished
   fromAeson _ = Nothing 
 
-
+   
 instance ToAeson JobInfo where
   toAeson i = Object $ 
                 M.fromList 
