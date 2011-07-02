@@ -30,6 +30,7 @@ import Control.Concurrent (threadDelay)
 
 import HEP.Automation.Pipeline.Config
 import HEP.Automation.Pipeline.Job
+import HEP.Automation.Pipeline.Job.Match
 
 import HEP.Automation.JobQueue.JobQueue
 -- import HEP.Automation.JobQueue.Server.Type
