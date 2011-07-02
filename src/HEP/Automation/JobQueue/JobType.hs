@@ -54,17 +54,24 @@ instance (Model a) => SafeCopy (ModelParam a) where
               str <- safeGet
               return (interpreteParam str)
 
+instance SafeCopy Detector where
+  putCopy Tevatron = contain (safePut (1 :: Int))
+  putCopy LHC = contain (safePut (2 :: Int))
+  putCopy CMS = contain (safePut (3 :: Int))
+  putCopy ATLAS = contain (safePut (4 :: Int))
+
 instance SafeCopy MachineType where 
   putCopy TeVatron = contain (safePut (0 :: Int))
   putCopy LHC7     = contain (safePut (1 :: Int))
   putCopy LHC14    = contain (safePut (2 :: Int)) 
-  putCopy (Parton energy) = contain $ do {safePut (3 :: Int); safePut energy }
+  putCopy (Parton energy detector) = 
+    contain $ do {safePut (3 :: Int); safePut energy; safePut detector}
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of 
                            0 -> return TeVatron 
                            1 -> return LHC7 
                            2 -> return LHC14
-                           3 -> Parton <$> safeGet  
+                           3 -> Parton <$> safeGet <*> safeGet
 
 instance SafeCopy RGRunType where
   putCopy Fixed = contain (safePut (0 :: Int)) 

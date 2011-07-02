@@ -129,9 +129,10 @@ instance ToAeson MachineType where
   toAeson TeVatron = Object (M.singleton "Type" (String "TeVatron"))
   toAeson LHC7     = Object (M.singleton "Type" (String "LHC7"))
   toAeson LHC14    = Object (M.singleton "Type" (String "LHC14"))
-  toAeson (Parton energy) = Object (M.fromList 
-                                         [ ("Type",String "Parton")
-                                         , ("Energy",Number (D energy)) ]) 
+  toAeson (Parton energy detector) = Object (M.fromList 
+                                              [ ("Type",String "Parton")
+                                              , ("Energy",Number (D energy))
+                                              , ("Detector", toAeson detector)]) 
 
 instance FromAeson MachineType where
   fromAeson (Object m) = do t <- M.lookup "Type" m
@@ -140,11 +141,10 @@ instance FromAeson MachineType where
                               String "LHC7"     -> return LHC7
                               String "LHC14"    -> return LHC14
                               String "Parton"   -> do 
-                                e <- M.lookup "Energy" m
-                                case e of 
-                                  Number (D energy) -> return (Parton energy)
-                                  _ -> Nothing
+                                Parton <$> lookupfunc "Energy" 
+                                       <*> lookupfunc "Detector"
                               _ -> Nothing
+    where lookupfunc str = M.lookup str m >>= fromAeson 
   fromAeson _ = Nothing 
 
 
