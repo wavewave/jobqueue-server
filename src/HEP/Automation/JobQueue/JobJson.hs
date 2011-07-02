@@ -288,6 +288,7 @@ instance (Model a) => ToAeson (RunSetup a) where
                     , ("usercut"  , toAeson . usercut $ p)
                     , ("pgs"      , toAeson . pgs $ p) 
                     , ("jetalgo"  , toAeson . jetalgo $ p)
+                    , ("hep"      , toAeson . uploadhep $ p )
                     , ("setnum"   , Number . I . fromIntegral . setnum $ p)] 
 
 instance (Model a) => FromAeson (RunSetup a) where
@@ -297,7 +298,8 @@ instance (Model a) => FromAeson (RunSetup a) where
        <*> lookupfunc "rgscale" <*> lookupfunc "match"
        <*> lookupfunc "cut"     <*> lookupfunc "pythia"  
        <*> lookupfunc "usercut" <*> lookupfunc "pgs"
-       <*> lookupfunc "jetalgo" <*> lookupfunc "setnum"
+       <*> lookupfunc "jetalgo" <*> lookupfunc "hep"
+       <*> lookupfunc "setnum"
     where lookupfunc str = M.lookup str m >>= fromAeson  
   fromAeson _ = Nothing
 

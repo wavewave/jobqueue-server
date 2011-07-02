@@ -127,7 +127,7 @@ instance SafeCopy PGSType where
 instance SafeCopy EventSet where
   putCopy (EventSet p r) = 
     let PS mv m pr pb wn = p 
-        RS mp ne ma rgr rgs mat cu py uc pg ja sn = r 
+        RS mp ne ma rgr rgs mat cu py uc pg ja hu sn = r 
     in  contain $ do safePut mv 
                      safePut (modelName m)  
                      safePut pr  
@@ -144,6 +144,7 @@ instance SafeCopy EventSet where
                      safePut uc 
                      safePut pg 
                      safePut ja
+                     safePut hu
                      safePut sn
   getCopy = contain $ do 
     mv <- safeGet
@@ -162,35 +163,13 @@ instance SafeCopy EventSet where
         getRSetup :: (Model a) => a -> Get (RunSetup a)
         getRSetup _mdl = RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
                             <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
-                            <*> safeGet <*> safeGet
+                            <*> safeGet <*> safeGet <*> safeGet
 
     let maybemodelbox = modelParse modelstr 
     case maybemodelbox of 
       Just modelbox -> mkEventSet modelbox 
       Nothing -> error $ "modelname : " ++ modelstr ++ " is strange!"
  
-{-
- case modelstr of 
-      "DummyModel" -> do 
-         (mp :: ModelParam DummyModel) <- safeGet 
-         let p = PS mv DummyModel pr pb wn 
-         r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
-                    <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
-         return (EventSet p r)
-      "Axigluon_AV_MG" -> do 
-         (mp :: ModelParam AxiGluon) <- safeGet 
-         let p = PS mv AxiGluon pr pb wn 
-         r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
-                    <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
-         return (EventSet p r)
-      "Octet" -> do 
-         (mp :: ModelParam Octet) <- safeGet
-         let p = PS mv Octet pr pb wn 
-         r <- RS mp <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
-                    <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
-         return (EventSet p r)
--}
-
 instance SafeCopy PGSJetAlgorithm where
   putCopy Cone = contain $ safePut (1 :: Int) 
   putCopy KTJet = contain $ safePut (2 :: Int)
@@ -198,6 +177,16 @@ instance SafeCopy PGSJetAlgorithm where
                          case x of
                            1 -> return Cone
                            2 -> return KTJet
+
+
+instance SafeCopy HEPFileType where
+  putCopy NoUploadHEP = contain $ safePut (1 :: Int) 
+  putCopy UploadHEP = contain $ safePut (2 :: Int)
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of
+                           1 -> return NoUploadHEP
+                           2 -> return UploadHEP
+
 
 instance SafeCopy MadGraphVersion where
   putCopy MadGraph4 = contain $ safePut (4 :: Int) 
