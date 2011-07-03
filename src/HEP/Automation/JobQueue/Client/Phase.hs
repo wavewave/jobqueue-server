@@ -36,34 +36,40 @@ import HEP.Automation.JobQueue.JobQueue
 -- import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Client.Job
 
-startWaitPhase :: LocalConfiguration -> IO () 
-startWaitPhase lc = do 
+startWaitPhase :: LocalConfiguration -> Int -> IO () 
+startWaitPhase lc n = do 
   putStrLn "starting Wait Phase"
+  newn <- if (n < 0) 
+            then do 
+              putStrLn "too many failure, need to take a rest" 
+              threadDelay (60*1000000)
+              return 3 
+            else return n
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   r <- jobqueueAssign url (lc_clientConfiguration lc) 
   case r of 
-    Just jinfo -> startJobPhase lc jinfo
+    Just jinfo -> startJobPhase lc jinfo newn
     Nothing -> do
       threadDelay . (*1000000) . nc_polling . lc_networkConfiguration $ lc
-      startWaitPhase lc
+      startWaitPhase lc newn
 
-startJobPhase :: LocalConfiguration -> JobInfo -> IO ()
-startJobPhase lc jinfo = do 
+startJobPhase :: LocalConfiguration -> JobInfo -> Int -> IO ()
+startJobPhase lc jinfo n = do 
   putStrLn "starting Job Phase"
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   -- check job here
   r <- confirmAssignment url jinfo 
   case r of
-    Nothing -> startWaitPhase lc
+    Nothing -> startWaitPhase lc (n-1)
     Just jinfo' -> do 
       putStrLn "job assigned well"
       r' <- getWebDAVInfo url
       case r' of 
-        Nothing -> startWaitPhase lc
+        Nothing -> startWaitPhase lc n
         Just sconf -> do 
           let wc = WorkConfig lc sconf
               job = jobMatch jinfo
-              back = backToUnassigned url jinfo >> startWaitPhase lc
+              back = backToUnassigned url jinfo >> startWaitPhase lc (n-1)
           putStrLn $ "Work Configuration = " ++ show wc
           b1 <- pipeline_checkSystem job wc jinfo'
           if not b1 
@@ -86,7 +92,7 @@ startJobPhase lc jinfo = do
                           changeStatus url jinfo' Finished
                           threadDelay 10000000
                           return ()
-  startWaitPhase lc
+  startWaitPhase lc n 
 
 startGetPhase :: LocalConfiguration -> Int -> IO () 
 startGetPhase lc jid = do
