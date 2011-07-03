@@ -108,8 +108,15 @@ updateJob k jinfo
            let (r,m') = M.updateLookupWithKey f k m
            put (JobInfoQueue l m')
            return r 
+
+deleteJob :: Int -> Update JobInfoQueue ()
+deleteJob k = do 
+  JobInfoQueue l m <- get
+  let m' = M.delete k m
+  put (JobInfoQueue l m')
+
  
-$(makeAcidic ''JobInfoQueue ['addJob, 'queryAll, 'queryJob, 'updateJob]) 
+$(makeAcidic ''JobInfoQueue ['addJob, 'queryAll, 'queryJob, 'updateJob, 'deleteJob]) 
 
 
 
