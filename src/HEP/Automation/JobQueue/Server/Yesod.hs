@@ -83,6 +83,17 @@ handleJobR number = do
   case requestMethod wr of
     "GET" -> getJobR number
     "PUT" -> putJobR number 
+    "DELETE" -> deleteJobR number
+
+deleteJobR n = do 
+  liftIO $ putStrLn "deleteJobR called"
+  JobQueueServer acid _ <- getYesod
+  r <- liftIO $ query acid (QueryJob n) 
+  case r of 
+    Nothing -> defaultLayoutJson [hamlet|this is html|] (toAeson ("No such job" :: String))
+    Just j  -> do
+      liftIO $ update acid (DeleteJob n) >>= print  
+      defaultLayoutJson [hamlet|this is html|] (toAeson ("Delete Succeed" :: String))
 
 getJobR n = do
   liftIO $ putStrLn "getJobR called"
