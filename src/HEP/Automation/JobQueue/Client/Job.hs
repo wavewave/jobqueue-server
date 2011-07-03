@@ -51,6 +51,19 @@ jobqueuePut url jinfo = do
     putStrLn $ show r 
     return (Just jinfo)
 
+jobqueueDelete :: Url -> Int -> IO ()
+jobqueueDelete url jid = do 
+  putStrLn "delete" 
+  withManager $ \manager -> do -- <- newManager 
+    requesttemp <- parseUrl (url </> "job" </> show jid )
+    let requestdel = requesttemp { 
+                       method = methodDelete, 
+                       requestHeaders = [ ("Content-Type", "text/plain") 
+                                        , ("Accept", "application/json; charset=utf-8")]
+                     } 
+    r <- httpLbs requestdel manager 
+    putStrLn $ show r 
+
 jobqueueList :: Url -> IO () 
 jobqueueList url = do 
   putStrLn "list"

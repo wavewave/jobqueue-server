@@ -19,3 +19,6 @@ commandLineProcess (Start conf) = do
 commandLineProcess (Revert jid conf) = do 
   putStrLn $ "revert job " ++ show jid ++ " called"
   readConfigFile conf >>= flip startRevertPhase jid
+commandLineProcess (Delete jid conf) = do 
+  putStrLn $ "delete job " ++ show jid ++ " called"
+  readConfigFile conf >>= flip startDeletePhase jid

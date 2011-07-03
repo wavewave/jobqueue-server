@@ -24,6 +24,8 @@ module HEP.Automation.JobQueue.Client.Phase
         , startJobPhase
           -- * Revert command 
         , startRevertPhase
+          -- * Delete command
+        , startDeletePhase
         ) where
 
 import Control.Concurrent (threadDelay)
@@ -121,4 +123,17 @@ startRevertPhase lc jid = do
     Right jobinfo -> do 
       putStrLn $ " job is " ++ show jobinfo
       backToUnassigned url jobinfo
+      return ()
+
+startDeletePhase :: LocalConfiguration -> Int -> IO () 
+startDeletePhase lc jid = do
+  let url = nc_jobqueueurl . lc_networkConfiguration $ lc
+  j <- jobqueueGet url jid
+  case j of 
+    Left errmsg -> do
+      putStrLn "No such job!"
+      putStrLn $ "error : " ++ errmsg
+    Right jobinfo -> do 
+      putStrLn $ " job is " ++ show jobinfo
+      jobqueueDelete url jid
       return ()

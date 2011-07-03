@@ -8,6 +8,7 @@ data JobClient = Get    { jobid :: Int, config :: FilePath }
                | List   { queuetyp :: String, config :: FilePath }
                | Start  { config :: FilePath } 
                | Revert { jobid :: Int, config :: FilePath } 
+               | Delete { jobid :: Int, config :: FilePath } 
                deriving (Show,Data,Typeable)
 
 get :: JobClient 
@@ -23,5 +24,10 @@ revert :: JobClient
 revert = Revert { jobid = 0 &= typ "JOBID" &= argPos 0 
                 , config = "test.conf" }
 
+delete :: JobClient 
+delete = Delete { jobid = 0 &= typ "JOBID" &= argPos 0 
+                , config = "test.conf" }
+
+
 mode :: JobClient 
-mode = modes [get, list, start, revert] 
+mode = modes [get, list, start, revert, delete] 
