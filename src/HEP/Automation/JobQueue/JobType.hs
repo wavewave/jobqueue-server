@@ -59,6 +59,12 @@ instance SafeCopy Detector where
   putCopy LHC = contain (safePut (2 :: Int))
   putCopy CMS = contain (safePut (3 :: Int))
   putCopy ATLAS = contain (safePut (4 :: Int))
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           1 -> return Tevatron
+                           2 -> return LHC
+                           3 -> return CMS
+                           4 -> return ATLAS
 
 instance SafeCopy MachineType where 
   putCopy TeVatron = contain (safePut (0 :: Int))
