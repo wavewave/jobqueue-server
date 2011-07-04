@@ -184,14 +184,14 @@ instance SafeCopy EventSet where
       Nothing -> error $ "modelname : " ++ modelstr ++ " is strange!"
  
 instance SafeCopy PGSJetAlgorithm where
-  putCopy Cone = contain $ safePut (1 :: Int) 
-  putCopy KTJet = contain $ safePut (2 :: Int)
-  putCopy AntiKTJet = contain $ safePut (3 :: Int)
+  putCopy (Cone conesize) = contain $ do {safePut (1 :: Int); safePut conesize} 
+  putCopy (KTJet conesize) = contain $ do {safePut (2 :: Int); safePut conesize}
+  putCopy (AntiKTJet conesize) = contain $ do {safePut (3 :: Int); safePut conesize}
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of
-                           1 -> return Cone
-                           2 -> return KTJet
-                           3 -> return AntiKTJet
+                           1 -> Cone <$> safeGet
+                           2 -> KTJet <$> safeGet
+                           3 -> AntiKTJet <$> safeGet
 
 
 instance SafeCopy HEPFileType where
