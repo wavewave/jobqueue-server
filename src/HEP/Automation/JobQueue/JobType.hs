@@ -68,15 +68,15 @@ instance SafeCopy Detector where
 
 instance SafeCopy MachineType where 
   putCopy TeVatron = contain (safePut (0 :: Int))
-  putCopy LHC7     = contain (safePut (1 :: Int))
-  putCopy LHC14    = contain (safePut (2 :: Int)) 
+  putCopy (LHC7 detector)   = contain $ do {safePut (1 :: Int); safePut detector}
+  putCopy (LHC14 detector)  = contain $ do {safePut (2 :: Int); safePut detector} 
   putCopy (Parton energy detector) = 
     contain $ do {safePut (3 :: Int); safePut energy; safePut detector}
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of 
                            0 -> return TeVatron 
-                           1 -> return LHC7 
-                           2 -> return LHC14
+                           1 -> LHC7 <$> safeGet
+                           2 -> LHC14 <$> safeGet
                            3 -> Parton <$> safeGet <*> safeGet
 
 instance SafeCopy RGRunType where
