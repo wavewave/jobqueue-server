@@ -186,10 +186,12 @@ instance SafeCopy EventSet where
 instance SafeCopy PGSJetAlgorithm where
   putCopy Cone = contain $ safePut (1 :: Int) 
   putCopy KTJet = contain $ safePut (2 :: Int)
+  putCopy AntiKTJet = contain $ safePut (3 :: Int)
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of
                            1 -> return Cone
                            2 -> return KTJet
+                           3 -> return AntiKTJet
 
 
 instance SafeCopy HEPFileType where
