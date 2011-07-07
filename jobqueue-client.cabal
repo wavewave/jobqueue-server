@@ -1,5 +1,5 @@
 Name:		jobqueue-client
-Version:	0.0.9.0
+Version:	0.1.0.0
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
