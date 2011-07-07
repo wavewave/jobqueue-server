@@ -1,5 +1,5 @@
 Name:		jobqueue-common
-Version:	0.0.9.0
+Version:	0.1.0.0
 Synopsis:	common library for job scheduler for event generation 
 Description: 	common library job scheduler for event generation
 License: 	BSD3
