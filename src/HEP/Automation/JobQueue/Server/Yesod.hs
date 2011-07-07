@@ -34,6 +34,9 @@ import Data.Aeson.Types hiding (parse)
 import Data.Aeson.Parser
 import Data.Attoparsec
 
+import HEP.Automation.MadGraph.SetupType
+import HEP.Automation.MadGraph.Util 
+
 import HEP.Automation.JobQueue.JobType 
 import HEP.Automation.JobQueue.JobJson
 import HEP.Automation.JobQueue.JobQueue
@@ -46,6 +49,8 @@ import Data.Acid
 
 import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Server.Work
+
+import HEP.Storage.WebDAV.Type
 
 data JobQueueServer = JobQueueServer { 
   server_acid :: AcidState JobInfoQueue,
@@ -70,7 +75,7 @@ instance Yesod JobQueueServer where
 type Handler = GHandler JobQueueServer JobQueueServer 
 
 
-
+getHomeR :: Handler RepHtml 
 getHomeR = do 
   liftIO $ putStrLn "getHomeR called"
   defaultLayout [hamlet|Hello World!|]
@@ -85,6 +90,7 @@ handleJobR number = do
     "PUT" -> putJobR number 
     "DELETE" -> deleteJobR number
 
+deleteJobR :: Int -> Handler RepHtmlJson
 deleteJobR n = do 
   liftIO $ putStrLn "deleteJobR called"
   JobQueueServer acid _ <- getYesod
@@ -95,15 +101,44 @@ deleteJobR n = do
       liftIO $ update acid (DeleteJob n) >>= print  
       defaultLayoutJson [hamlet|this is html|] (toAeson ("Delete Succeed" :: String))
 
+getJobR :: Int -> Handler RepHtmlJson
 getJobR n = do
   liftIO $ putStrLn "getJobR called"
-  JobQueueServer acid _ <- getYesod 
+  JobQueueServer acid sconf <- getYesod 
   r <- liftIO $ query acid (QueryJob n)  
   let rstr = case r of 
                Nothing -> Left ("No such job" :: String)
                Just j  -> Right j
-  defaultLayoutJson [hamlet| this is html found |] (toAeson rstr)
+  let getJobhamlet = case rstr of 
+        Left e -> do  
+          setTitle (Yesod.string ("Job " ++ show n ++ " detail" ))
+          [hamlet| 
+             <h1> Job #{n} 
+             <p 
+                #{e}
+          |]
+        Right j -> do 
+          let jid = jobinfo_id j 
+              jdet = jobinfo_detail j 
+              url = webdav_server_url . server_webdav $ sconf 
+              jremotedir = webdav_remotedir . jobdetail_remotedir $ jdet
+              jstatus = show . jobinfo_status $ j 
+          case (jobdetail_evset jdet) of 
+            EventSet p r -> do 
+              let wname = makeRunName p r  
+              setTitle (Yesod.string ("Job " ++ show n ++ " detail" )) 
+              [hamlet| 
+                 <h1> Job #{n} 
+                 <ul 
+                   <li> job id = #{jid} 
+                   <li> job name = #{wname} 
+                   <li> job status = #{jstatus}  
+                   <li> job remote dir = 
+                     <a href=#{url}/#{jremotedir}> #{jremotedir}  
+              |]       
+  defaultLayoutJson getJobhamlet (toAeson rstr)
 
+putJobR :: Int -> Handler RepHtmlJson
 putJobR n = do 
   liftIO $ putStrLn "putJobR called"
   JobQueueServer acid _ <- getYesod 
@@ -125,6 +160,7 @@ putJobR n = do
         putStrLn $ SC.unpack bs
       defaultLayoutJson [hamlet| this is not html |] (toAeson ("Fail" :: String))
 
+postQueueR :: Handler ()
 postQueueR = do 
   liftIO $ putStrLn "postQueueR called" 
   JobQueueServer acid _ <- getYesod  
@@ -142,38 +178,70 @@ postQueueR = do
                  putStrLn $ "result not parsed well : " 
                  putStrLn $ SC.unpack bs
 
-
+getQueueListR :: Handler RepHtmlJson
 getQueueListR = do 
   liftIO $ putStrLn "getQueueListR called" 
-  JobQueueServer acid _ <- getYesod
+  JobQueueServer acid sconf <- getYesod
+  let url = server_main sconf 
   r <- liftIO $ query acid QueryAll
-  defaultLayoutJson [hamlet| this is html found |] (jsonJobInfoQueue r)
+  let result = snd r
+  defaultLayoutJson (hamletListJobs url "all" result) (toAeson result)
 
+getQueueListUnassignedR :: Handler RepHtmlJson
 getQueueListUnassignedR = do 
   liftIO $ putStrLn "getQueueListUnassignedR called"
-  JobQueueServer acid _ <- getYesod
+  JobQueueServer acid sconf <- getYesod
+  let url = server_main sconf 
   r <- liftIO $ query acid QueryAll
   let f j = jobinfo_status j == Unassigned
       result = filter f (snd r)
-  defaultLayoutJson [hamlet| this is html found |] (toAeson result)
+  defaultLayoutJson (hamletListJobs url "unassigned" result) (toAeson result)
 
+getQueueListInprogressR :: Handler RepHtmlJson
 getQueueListInprogressR = do 
   liftIO $ putStrLn "getQueueListInprogressR called"
-  JobQueueServer acid _ <- getYesod
+  JobQueueServer acid sconf <- getYesod
+  let url = server_main sconf 
   r <- liftIO $ query acid QueryAll 
   let f j = let s = jobinfo_status j
             in (s == Assigned) || (s == BeingCalculated) || (s == BeingTested)
       result = filter f (snd r)
-  defaultLayoutJson [hamlet| this is html found |] (toAeson result)
+  defaultLayoutJson (hamletListJobs url "inprogress" result) (toAeson result)
 
+getQueueListFinishedR :: Handler RepHtmlJson
 getQueueListFinishedR = do 
   liftIO $ putStrLn "getQueueListFinishedR called"
-  JobQueueServer acid _ <- getYesod
+  JobQueueServer acid sconf <- getYesod
+  let url = server_main sconf 
   r <- liftIO $ query acid QueryAll 
   let f j = jobinfo_status j == Finished
       result = filter f (snd r)
-  defaultLayoutJson [hamlet| this is html found |] (toAeson result)
+  defaultLayoutJson (hamletListJobs url "finished" result) (toAeson result)
 
+hamletListJobs :: (Yesod master) => String -> String -> [JobInfo] -> GWidget sub master ()
+hamletListJobs url str lst = do 
+  let jobname jdet = 
+        case (jobdetail_evset jdet) of 
+          EventSet p r -> makeRunName p r
+  let remotedir = webdav_remotedir . jobdetail_remotedir . jobinfo_detail  
+  [hamlet| 
+    <h1> List #{str}
+    <table 
+      <tr 
+        <td> job id 
+        <td> job name 
+        <td> job status
+      $forall job <- lst 
+        <tr 
+          <td> 
+            <a href=#{url}/job/#{jobinfo_id job}> #{jobinfo_id job}
+          <td> #{jobname (jobinfo_detail job)}
+          <td> #{show (jobinfo_status job)}
+  |]
+
+
+
+postAssignR :: Handler RepHtmlJson
 postAssignR = do 
   liftIO $ putStrLn "assignR called"  
   JobQueueServer acid _ <- getYesod  
@@ -196,7 +264,16 @@ getConfigWebDAVR = do
   JobQueueServer _ sconf  <- getYesod  
   let wdav = server_webdav sconf 
   liftIO $ putStrLn "getConfigWebDAVR called" 
-  defaultLayoutJson [hamlet| this is html |] (toAeson wdav) 
+  let url = webdav_server_url wdav 
+  let configWebDAVhamlet = do 
+        setTitle "webdav server configuration"
+        [hamlet| 
+<h1> WebDAV configuration
+<h2> WebDAV server is 
+<p
+  <a href=#{url}>  #{url} 
+|]
+  defaultLayoutJson configWebDAVhamlet (toAeson wdav)  
               
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 

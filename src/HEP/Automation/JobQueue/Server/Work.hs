@@ -24,5 +24,6 @@ serverConfigParser fp = do
 configServer :: ParsecT String () Identity ServerConfig
 configServer = do 
   oneGroupFieldInput "server" $ do 
-    url <- oneFieldInput "webdavURL"
-    return (ServerConfig (WebDAVServer url))
+    url <- oneFieldInput "mainURL"
+    webdavurl <- oneFieldInput "webdavURL"
+    return (ServerConfig url (WebDAVServer webdavurl))

@@ -1,5 +1,5 @@
 Name:		jobqueue-server
-Version:	0.0.9.0
+Version:	0.1.0.0
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
@@ -23,6 +23,7 @@ Library
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
+                 madgraph-auto,
                  jobqueue-common, webdav-manager, configparser, parsec
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Server.Yesod
