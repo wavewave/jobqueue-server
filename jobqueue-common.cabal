@@ -1,5 +1,5 @@
 Name:		jobqueue-common
-Version:	0.1.0.0
+Version:	0.1.1.0
 Synopsis:	common library for job scheduler for event generation 
 Description: 	common library job scheduler for event generation
 License: 	BSD3
@@ -17,11 +17,13 @@ Library
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
                  madgraph-auto==0.5.*, cereal >= 0.3.1.0, madgraph-auto-model, 
                  aeson, attoparsec, vector, text, parsec, bytestring, 
-                 webdav-manager
+                 webdav-manager, hxt 
   Exposed-Modules: 
                    HEP.Automation.JobQueue.JobType
                    HEP.Automation.JobQueue.JobType.V2
+                   HEP.Automation.JobQueue.JobType.V3
                    HEP.Automation.JobQueue.JobQueue
+                   HEP.Automation.JobQueue.JobQueue.V3
                    HEP.Automation.JobQueue.JobJson
                    HEP.Automation.JobQueue.Config
                    HEP.Automation.JobQueue.Server.Type

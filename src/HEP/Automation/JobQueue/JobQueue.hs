@@ -14,7 +14,7 @@
 -- Stability    : Experimental
 -- Portability  : unknown 
 -- 
--- JobQueue Type
+-- JobQueue Type  V4
 --
 ----------------------------------------------------
 
@@ -23,7 +23,9 @@ module HEP.Automation.JobQueue.JobQueue where
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Reader
+
 import Data.Typeable
+import Data.Data
 
 import Data.Acid
 
@@ -42,38 +44,39 @@ type JobNumber = Int
 data JobInfo = JobInfo {
   jobinfo_id     :: JobNumber, 
   jobinfo_detail :: JobDetail, 
-  jobinfo_status :: JobStatus
+  jobinfo_status :: JobStatus 
 } deriving (Typeable, Show) 
 
 data JobDetail = EventGen { jobdetail_evset :: EventSet, 
                             jobdetail_remotedir :: WebDAVRemoteDir
                           }  
-               | MathAnal { jobdetail_evset :: EventSet, 
+               | MathAnal { jobdetail_mathanal :: String, 
+                            jobdetail_evset :: EventSet, 
                             jobdetail_remotedir :: WebDAVRemoteDir
                           } 
-               deriving Show
+               deriving (Show)
 
 data JobStatus = Unassigned 
-               | Assigned 
-               | BeingCalculated
-               | BeingTested
-               | Finished
-               deriving (Show, Eq) 
+               | Assigned String 
+               | BeingCalculated String 
+               | BeingTested String 
+               | Finished String 
+               deriving (Show, Eq, Typeable, Data) 
 
 
 instance SafeCopy JobStatus where
-  putCopy Unassigned      = contain $ safePut (0 :: Int) 
-  putCopy Assigned        = contain $ safePut (1 :: Int) 
-  putCopy BeingCalculated = contain $ safePut (2 :: Int)
-  putCopy BeingTested     = contain $ safePut (3 :: Int)
-  putCopy Finished        = contain $ safePut (4 :: Int)
+  putCopy Unassigned            = contain $ safePut (0 :: Int)
+  putCopy (Assigned        str) = contain $ do {safePut (1 :: Int); safePut str}
+  putCopy (BeingCalculated str) = contain $ do {safePut (2 :: Int); safePut str}
+  putCopy (BeingTested     str) = contain $ do {safePut (3 :: Int); safePut str}
+  putCopy (Finished        str) = contain $ do {safePut (4 :: Int); safePut str}
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of 
                            0 -> return Unassigned
-                           1 -> return Assigned
-                           2 -> return BeingCalculated
-                           3 -> return BeingTested
-                           4 -> return Finished 
+                           1 -> Assigned <$> safeGet  
+                           2 -> BeingCalculated <$> safeGet
+                           3 -> BeingTested <$> safeGet
+                           4 -> Finished <$> safeGet
 
 $(deriveSafeCopy 0 'base ''JobDetail)
 $(deriveSafeCopy 0 'base ''JobInfo)

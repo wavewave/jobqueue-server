@@ -333,15 +333,17 @@ instance FromAeson EventSet where
           lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing 
 
+
 instance ToAeson JobDetail where
   toAeson (EventGen evset rdir) = Object $ 
                                M.fromList [ ( "JobType",  String "EventGen" ) 
                                           , ( "evset", toAeson evset) 
                                           , ( "rdir",  toAeson rdir) ]
-  toAeson (MathAnal evset rdir) = Object $ 
-                               M.fromList [ ( "JobType",  String "MathAnal" )
-                                          , ( "evset", toAeson evset)
-                                          , ( "rdir",  toAeson rdir) ]
+  toAeson (MathAnal mathanal evset rdir) = 
+    Object $ M.fromList [ ( "JobType",  String "MathAnal" )
+                        , ( "mathanal", toAeson mathanal)
+                        , ( "evset", toAeson evset)
+                        , ( "rdir",  toAeson rdir) ]
 
 instance FromAeson JobDetail where
   fromAeson (Object m) = do
@@ -349,10 +351,12 @@ instance FromAeson JobDetail where
     case t of 
       "EventGen" -> EventGen <$> (M.lookup "evset" m >>= fromAeson) 
                              <*> (M.lookup "rdir" m >>= fromAeson)
-      "MathAnal" -> MathAnal <$> (M.lookup "evset" m >>= fromAeson)
+      "MathAnal" -> MathAnal <$> (M.lookup "mathanal" m >>= fromAeson)
+                             <*> (M.lookup "evset" m >>= fromAeson)
                              <*> (M.lookup "rdir" m >>= fromAeson)
       _ -> Nothing 
   fromAeson _ = Nothing
+
 
 instance ToAeson WebDAVRemoteDir where
   toAeson (WebDAVRemoteDir rdir) = toAeson rdir 
@@ -360,13 +364,17 @@ instance ToAeson WebDAVRemoteDir where
 instance FromAeson WebDAVRemoteDir where
   fromAeson v = WebDAVRemoteDir <$> fromAeson v
 
-
+{-
 instance ToAeson JobStatus where
-  toAeson Unassigned = String "Unassigned"
-  toAeson Assigned   = String "Assigned"
-  toAeson BeingCalculated = String "BeingCalculated"
-  toAeson BeingTested = String "BeingTested"
-  toAeson Finished = String "Finished"
+  toAeson Unassigned = Object $ 
+                         M.fromList [ ("Status", String "Unassigned") ] 
+  toAeson Assigned client  = Object $ 
+                              
+                           
+String "Assigned"
+  toAeson BeingCalculated client = String "BeingCalculated"
+  toAeson BeingTested client = String "BeingTested"
+  toAeson Finished client = String "Finished"
 
 instance FromAeson JobStatus where
   fromAeson (String "Unassigned") = Just Unassigned
@@ -375,7 +383,7 @@ instance FromAeson JobStatus where
   fromAeson (String "BeingTested") = Just BeingTested
   fromAeson (String "Finished") = Just Finished
   fromAeson _ = Nothing 
-
+-}
    
 instance ToAeson JobInfo where
   toAeson i = Object $ 
