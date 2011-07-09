@@ -203,8 +203,11 @@ getQueueListInprogressR = do
   JobQueueServer acid sconf <- getYesod
   let url = server_main sconf 
   r <- liftIO $ query acid QueryAll 
-  let f j = let s = jobinfo_status j
-            in (s == Assigned) || (s == BeingCalculated) || (s == BeingTested)
+  let f j = case jobinfo_status j of
+              Assigned _ -> True
+              BeingCalculated _ -> True 
+              BeingTested _ -> True
+              _ -> False 
       result = filter f (snd r)
   defaultLayoutJson (hamletListJobs url "inprogress" result) (toAeson result)
 
@@ -214,7 +217,9 @@ getQueueListFinishedR = do
   JobQueueServer acid sconf <- getYesod
   let url = server_main sconf 
   r <- liftIO $ query acid QueryAll 
-  let f j = jobinfo_status j == Finished
+  let f j = case jobinfo_status j of 
+              Finished _ -> True 
+              _ -> False
       result = filter f (snd r)
   defaultLayoutJson (hamletListJobs url "finished" result) (toAeson result)
 
@@ -286,7 +291,7 @@ checkJobCompatibility :: ClientConfiguration -> JobInfo -> Bool
 checkJobCompatibility (ClientConfiguration cname math pbs montecarlo) jobinfo =
   case jobinfo_detail jobinfo of 
     EventGen _ _ -> montecarlo
-    MathAnal _ _ -> math || pbs 
+    MathAnal _ _ _ -> math  
 
 
 
