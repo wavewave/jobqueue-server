@@ -35,6 +35,7 @@ import HEP.Automation.Pipeline.Job
 import HEP.Automation.Pipeline.Job.Match
 
 import HEP.Automation.JobQueue.JobQueue
+import HEP.Automation.JobQueue.Config 
 -- import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Client.Job
 
@@ -59,8 +60,9 @@ startJobPhase :: LocalConfiguration -> JobInfo -> Int -> IO ()
 startJobPhase lc jinfo n = do 
   putStrLn "starting Job Phase"
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
+  let cname = computerName . lc_clientConfiguration $ lc
   -- check job here
-  r <- confirmAssignment url jinfo 
+  r <- confirmAssignment url cname jinfo 
   case r of
     Nothing -> startWaitPhase lc (n-1)
     Just jinfo' -> do 
@@ -77,12 +79,12 @@ startJobPhase lc jinfo n = do
           if not b1 
             then back
             else do 
-              changeStatus url jinfo' BeingCalculated
+              changeStatus url jinfo' (BeingCalculated cname)
               b2 <- pipeline_startWork job wc jinfo' 
               if not b2 
                 then back
                 else do
-                  changeStatus url jinfo' BeingTested
+                  changeStatus url jinfo' (BeingTested cname)
                   b3 <- pipeline_startTest job wc jinfo'
                   if not b3 
                     then back
@@ -91,7 +93,7 @@ startJobPhase lc jinfo n = do
                       if not b4 
                         then back
                         else do
-                          changeStatus url jinfo' Finished
+                          changeStatus url jinfo' (Finished cname)
                           threadDelay 10000000
                           return ()
   startWaitPhase lc n 

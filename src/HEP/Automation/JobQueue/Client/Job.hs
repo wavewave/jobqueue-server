@@ -128,13 +128,13 @@ jobqueueAssign url cc = do
       Nothing            -> do putStrLn "Parsing failed"
                                return Nothing 
 
-confirmAssignment :: Url -> JobInfo -> IO (Maybe JobInfo)
-confirmAssignment url jinfo = do  
+confirmAssignment :: Url -> String -> JobInfo -> IO (Maybe JobInfo)
+confirmAssignment url cname jinfo = do  
   putStrLn "try confirmation"
   putStrLn (show jinfo)
   case jobinfo_status jinfo of 
     Unassigned -> do 
-      let newjob = jinfo { jobinfo_status = Assigned } 
+      let newjob = jinfo { jobinfo_status = Assigned cname } 
       jobqueuePut url newjob 
     _ -> return Nothing 
 
