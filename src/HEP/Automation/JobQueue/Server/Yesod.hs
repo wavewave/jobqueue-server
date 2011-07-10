@@ -229,6 +229,12 @@ hamletListJobs url str lst = do
         case (jobdetail_evset jdet) of 
           EventSet p r -> makeRunName p r
   let remotedir = webdav_remotedir . jobdetail_remotedir . jobinfo_detail  
+  let assignedclient job = case jobinfo_status job of      
+                             Unassigned -> "none"
+                             Assigned c -> c
+                             BeingCalculated c -> c
+                             BeingTested c -> c 
+                             Finished c -> c 
   [hamlet| 
     <h1> List #{str}
     <table 
@@ -236,12 +242,14 @@ hamletListJobs url str lst = do
         <td> job id 
         <td> job name 
         <td> job status
+        <td> assigned client
       $forall job <- lst 
         <tr 
           <td> 
             <a href=#{url}/job/#{jobinfo_id job}> #{jobinfo_id job}
           <td> #{jobname (jobinfo_detail job)}
           <td> #{show (jobinfo_status job)}
+          <td> #{assignedclient job}
   |]
 
 
