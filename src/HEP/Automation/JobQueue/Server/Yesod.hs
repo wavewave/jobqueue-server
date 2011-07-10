@@ -44,6 +44,7 @@ import HEP.Automation.JobQueue.Config
 
 import qualified Data.Map as M
 import qualified Data.IntMap as IM 
+import Data.List 
 
 import Data.Acid 
 
@@ -60,7 +61,7 @@ data JobQueueServer = JobQueueServer {
 mkYesod "JobQueueServer" [parseRoutes|
 / HomeR GET
 /job/#JobNumber JobR 
-/queue QueueR POST
+/queue/#Int QueueR POST
 /queuelist QueueListR GET 
 /queuelist/unassigned QueueListUnassignedR GET
 /queuelist/inprogress QueueListInprogressR GET
@@ -123,6 +124,7 @@ getJobR n = do
               url = webdav_server_url . server_webdav $ sconf 
               jremotedir = webdav_remotedir . jobdetail_remotedir $ jdet
               jstatus = show . jobinfo_status $ j 
+              jpriority = show . jobinfo_priority $ j 
           case (jobdetail_evset jdet) of 
             EventSet p r -> do 
               let wname = makeRunName p r  
@@ -132,7 +134,8 @@ getJobR n = do
                  <ul 
                    <li> job id = #{jid} 
                    <li> job name = #{wname} 
-                   <li> job status = #{jstatus}  
+                   <li> job status = #{jstatus}
+                   <li> job priority = #{jpriority}  
                    <li> job remote dir = 
                      <a href=#{url}/#{jremotedir}> #{jremotedir}  
               |]       
@@ -160,8 +163,8 @@ putJobR n = do
         putStrLn $ SC.unpack bs
       defaultLayoutJson [hamlet| this is not html |] (toAeson ("Fail" :: String))
 
-postQueueR :: Handler ()
-postQueueR = do 
+postQueueR :: Int -> Handler ()
+postQueueR prior = do 
   liftIO $ putStrLn "postQueueR called" 
   JobQueueServer acid _ <- getYesod  
   r <- getRequest
@@ -173,7 +176,9 @@ postQueueR = do
     Just result -> liftIO $ do 
                      putStrLn $ SC.unpack bs
                      putStrLn $ show result
-                     update acid (AddJob result) >>= print  
+                     if prior == 0 
+                       then update acid (AddJob result) >>= print  
+                       else update acid (AddJobWithPriority result Urgent) >>= print 
     Nothing -> liftIO $ do 
                  putStrLn $ "result not parsed well : " 
                  putStrLn $ SC.unpack bs
@@ -228,8 +233,21 @@ hamletListJobs url str lst = do
   let jobname jdet = 
         case (jobdetail_evset jdet) of 
           EventSet p r -> makeRunName p r
+  let jobtype :: JobInfo -> String 
+      jobtype job = case jobinfo_detail job of 
+                      EventGen _ _ -> "EventGen"
+                      MathAnal _ _ _ -> "Mathematica"
+       
   let remotedir = webdav_remotedir . jobdetail_remotedir . jobinfo_detail  
-  let assignedclient job = case jobinfo_status job of      
+  let jobstatusshow :: JobInfo -> String 
+      jobstatusshow job = case jobinfo_status job of 
+                            Unassigned -> "Unassigned"
+                            Assigned _ -> "Assigned"
+                            BeingCalculated _ -> "BeingCalculated"
+                            BeingTested _ -> "BeingTested"
+                            Finished _ -> "Finished"
+  let assignedclient :: JobInfo -> String 
+      assignedclient job = case jobinfo_status job of      
                              Unassigned -> "none"
                              Assigned c -> c
                              BeingCalculated c -> c
@@ -239,17 +257,21 @@ hamletListJobs url str lst = do
     <h1> List #{str}
     <table 
       <tr 
-        <td> job id 
-        <td> job name 
-        <td> job status
-        <td> assigned client
+        <td> id 
+        <td> name
+        <td> type 
+        <td> status
+        <td> client
+        <td> priority
       $forall job <- lst 
         <tr 
           <td> 
             <a href=#{url}/job/#{jobinfo_id job}> #{jobinfo_id job}
           <td> #{jobname (jobinfo_detail job)}
-          <td> #{show (jobinfo_status job)}
+          <td> #{jobtype job}
+          <td> #{jobstatusshow job}
           <td> #{assignedclient job}
+          <td> #{show (jobinfo_priority job)}
   |]
 
 
@@ -263,8 +285,14 @@ postAssignR = do
   let bs = S.concat bs' 
   let parsed = (parseJson bs :: Maybe ClientConfiguration) 
   case parsed of 
-    Just cc -> do listall <- liftIO $ query acid QueryAll
-                  let unassigned = filter (\x->jobinfo_status x == Unassigned) (snd listall)
+    Just cc -> do (_,listall) <- liftIO $ query acid QueryAll
+                  let priorcomp j1 j2 
+                        | jobinfo_priority j1 > jobinfo_priority j2 = LT
+                        | jobinfo_priority j1 == jobinfo_priority j2 =
+                           compare (jobinfo_id j1) (jobinfo_id j2)
+                        | jobinfo_priority j1 < jobinfo_priority j2 = GT
+                  let priorityordered = sortBy priorcomp listall 
+                  let unassigned = filter (\x->jobinfo_status x == Unassigned) priorityordered 
                   firstJobAssignment cc unassigned
     Nothing -> do liftIO $ do 
                     putStrLn $ "result not parsed well : " 
