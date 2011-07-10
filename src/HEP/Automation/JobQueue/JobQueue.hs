@@ -41,10 +41,14 @@ import qualified Data.IntMap as M
 
 type JobNumber = Int
 
+data JobPriority = NonUrgent | Urgent   
+                 deriving (Show,Eq,Ord,Typeable,Data)
+       
 data JobInfo = JobInfo {
   jobinfo_id     :: JobNumber, 
   jobinfo_detail :: JobDetail, 
-  jobinfo_status :: JobStatus 
+  jobinfo_status :: JobStatus, 
+  jobinfo_priority :: JobPriority
 } deriving (Typeable, Show) 
 
 data JobDetail = EventGen { jobdetail_evset :: EventSet, 
@@ -63,6 +67,14 @@ data JobStatus = Unassigned
                | Finished String 
                deriving (Show, Eq, Typeable, Data) 
 
+
+instance SafeCopy JobPriority where
+  putCopy NonUrgent = contain $ safePut ( 0 :: Int ) 
+  putCopy Urgent    = contain $ safePut ( 1 :: Int ) 
+  getCopy = contain $ do ( x :: Int ) <- safeGet  
+                         case x of 
+                           0 -> return NonUrgent 
+                           1 -> return Urgent 
 
 instance SafeCopy JobStatus where
   putCopy Unassigned            = contain $ safePut (0 :: Int)
@@ -90,9 +102,17 @@ data JobInfoQueue = JobInfoQueue {
 $(deriveSafeCopy 0 'base ''JobInfoQueue) 
 
 addJob :: JobDetail -> Update JobInfoQueue () 
-addJob j = do JobInfoQueue lastid m <- get
+addJob j = addJobWithPriority j NonUrgent 
+{-
+do JobInfoQueue lastid m <- get
               let newjob = JobInfo (lastid+1) j Unassigned
-              put $ JobInfoQueue (lastid+1) (M.insert (lastid+1) newjob m)  
+              put $ JobInfoQueue (lastid+1) (M.insert (lastid+1) newjob m)  NonUrgent -}
+
+
+addJobWithPriority :: JobDetail -> JobPriority -> Update JobInfoQueue () 
+addJobWithPriority j p = do JobInfoQueue lastid m <- get
+                            let newjob = JobInfo (lastid+1) j Unassigned p
+                            put $ JobInfoQueue (lastid+1) (M.insert (lastid+1) newjob m)  
 
 queryAll :: Query JobInfoQueue (Int, [JobInfo]) 
 queryAll = do JobInfoQueue lastid m <- ask 
@@ -119,7 +139,8 @@ deleteJob k = do
   put (JobInfoQueue l m')
 
  
-$(makeAcidic ''JobInfoQueue ['addJob, 'queryAll, 'queryJob, 'updateJob, 'deleteJob]) 
+$(makeAcidic ''JobInfoQueue [ 'addJob, 'addJobWithPriority, 'queryAll
+                            , 'queryJob, 'updateJob, 'deleteJob]) 
 
 
 

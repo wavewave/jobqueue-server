@@ -390,13 +390,16 @@ instance ToAeson JobInfo where
                 M.fromList 
                   [ ("id" , toAeson . jobinfo_id $ i)
                   , ("detail", toAeson . jobinfo_detail $ i)
-                  , ("status", toAeson . jobinfo_status $ i) ]
+                  , ("status", toAeson . jobinfo_status $ i) 
+                  , ("priority", toAeson . jobinfo_priority $ i) 
+                  ]
 
 instance FromAeson JobInfo where
   fromAeson (Object m) = 
     JobInfo <$> lookupfunc "id" 
             <*> lookupfunc "detail" 
-            <*> lookupfunc "status" 
+            <*> lookupfunc "status"  
+            <*> lookupfunc "priority"
     where lookupfunc str = M.lookup str m >>= fromAeson  
   fromAeson _ = Nothing
          
