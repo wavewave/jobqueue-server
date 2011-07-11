@@ -139,10 +139,9 @@ instance SafeCopy PGSType where
 
 instance SafeCopy EventSet where
   putCopy (EventSet p r) = 
-    let PS mv m pr pb wn = p 
+    let PS m pr pb wn = p 
         RS mp ne ma rgr rgs mat cu py uc pg ja hu sn = r 
-    in  contain $ do safePut mv 
-                     safePut (modelName m)  
+    in  contain $ do safePut (modelName m)  
                      safePut pr  
                      safePut pb 
                      safePut wn
@@ -160,7 +159,6 @@ instance SafeCopy EventSet where
                      safePut hu
                      safePut sn
   getCopy = contain $ do 
-    mv <- safeGet
     modelstr <- safeGet 
     pr <- safeGet  
     pb <- safeGet 
@@ -171,7 +169,7 @@ instance SafeCopy EventSet where
             EventSet <$> getPSetup mdl <*> getRSetup mdl 
 
         getPSetup :: (Model a) => a -> Get (ProcessSetup a)
-        getPSetup mdl = return (PS mv mdl pr pb wn)
+        getPSetup mdl = return (PS mdl pr pb wn)
 
         getRSetup :: (Model a) => a -> Get (RunSetup a)
         getRSetup _mdl = RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 

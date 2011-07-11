@@ -20,10 +20,10 @@ Library
                  webdav-manager, hxt 
   Exposed-Modules: 
                    HEP.Automation.JobQueue.JobType
-                   HEP.Automation.JobQueue.JobType.V2
-                   HEP.Automation.JobQueue.JobType.V3
+--                   HEP.Automation.JobQueue.JobType.V2
+--                   HEP.Automation.JobQueue.JobType.V3
                    HEP.Automation.JobQueue.JobQueue
-                   HEP.Automation.JobQueue.JobQueue.V3
+--                   HEP.Automation.JobQueue.JobQueue.V3
                    HEP.Automation.JobQueue.JobJson
                    HEP.Automation.JobQueue.Config
                    HEP.Automation.JobQueue.Server.Type

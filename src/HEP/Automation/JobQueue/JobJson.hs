@@ -260,16 +260,16 @@ modelFromAeson _ = Nothing
 instance (Model a) => ToAeson (ProcessSetup a) where
   toAeson p = Object 
               $ M.fromList 
-                    [ ("mversion"    , toAeson . mversion $ p)
-                    , ("model"       , atomizeStr . modelName . model $ p)
+                    [ ("model"       , atomizeStr . modelName . model $ p)
                     , ("process"     , atomizeStr . process $ p)
                     , ("processBrief", atomizeStr . processBrief $ p)
                     , ("workname"    , atomizeStr . workname $ p) ]
 
 instance (Model a) => FromAeson (ProcessSetup a) where
   fromAeson (Object m) =  
-    PS <$> lookupfunc "mversion" <*> (M.lookup "model" m >>= modelFromAeson)
-       <*> lookupfunc "process"  <*> lookupfunc "processBrief" 
+    PS <$> (M.lookup "model" m >>= modelFromAeson)
+       <*> lookupfunc "process" 
+       <*> lookupfunc "processBrief" 
        <*> lookupfunc "workname" 
     where lookupfunc str = M.lookup str m >>= fromAeson  
   fromAeson _ = Nothing 
