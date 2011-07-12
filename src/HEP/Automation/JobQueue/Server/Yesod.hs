@@ -137,7 +137,8 @@ getJobR n = do
                    <li> job status = #{jstatus}
                    <li> job priority = #{jpriority}  
                    <li> job remote dir = 
-                     <a href=#{url}/#{jremotedir}> #{jremotedir}  
+                     <a href=#{url}/#{jremotedir}> #{jremotedir} 
+                   <li> job detail = #{show jdet} 
               |]       
   defaultLayoutJson getJobhamlet (toAeson rstr)
 
