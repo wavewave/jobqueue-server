@@ -24,6 +24,8 @@ module HEP.Automation.JobQueue.Client.Phase
         , startJobPhase
           -- * Revert command 
         , startRevertPhase
+          -- * Finish command
+        , startFinishPhase
           -- * Delete command
         , startDeletePhase
         ) where
@@ -126,6 +128,20 @@ startRevertPhase lc jid = do
       putStrLn $ " job is " ++ show jobinfo
       backToUnassigned url jobinfo
       return ()
+
+startFinishPhase :: LocalConfiguration -> Int -> IO () 
+startFinishPhase lc jid = do
+  let url = nc_jobqueueurl . lc_networkConfiguration $ lc
+  j <- jobqueueGet url jid
+  case j of 
+    Left errmsg -> do
+      putStrLn "No such job!"
+      putStrLn $ "error : " ++ errmsg
+    Right jobinfo -> do 
+      putStrLn $ " job is " ++ show jobinfo
+      makeFinished url jobinfo
+      return ()
+
 
 startDeletePhase :: LocalConfiguration -> Int -> IO () 
 startDeletePhase lc jid = do

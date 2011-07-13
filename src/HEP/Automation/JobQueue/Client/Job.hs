@@ -141,6 +141,10 @@ confirmAssignment url cname jinfo = do
 backToUnassigned :: Url -> JobInfo -> IO (Maybe JobInfo)
 backToUnassigned url jinfo = changeStatus url jinfo Unassigned 
 
+makeFinished :: Url -> JobInfo -> IO (Maybe JobInfo)
+makeFinished url jinfo = changeStatus url jinfo (Finished "forcefully")
+
+
 changeStatus :: Url -> JobInfo -> JobStatus -> IO (Maybe JobInfo)
 changeStatus url jinfo status = do 
   let newjob = jinfo { jobinfo_status = status } 
