@@ -78,20 +78,24 @@ startJobPhase lc jinfo n = do
               back = backToUnassigned url jinfo >> startWaitPhase lc (n-1)
           putStrLn $ "Work Configuration = " ++ show wc
           b1 <- pipeline_checkSystem job wc jinfo'
+          threadDelay 10000000
           if not b1 
             then back
             else do 
               changeStatus url jinfo' (BeingCalculated cname)
               b2 <- pipeline_startWork job wc jinfo' 
+              threadDelay 10000000
               if not b2 
                 then back
                 else do
                   changeStatus url jinfo' (BeingTested cname)
                   b3 <- pipeline_startTest job wc jinfo'
+                  threadDelay 10000000
                   if not b3 
                     then back
                     else do 
                       b4 <- pipeline_uploadWork job wc jinfo'
+                      threadDelay 10000000
                       if not b4 
                         then back
                         else do
