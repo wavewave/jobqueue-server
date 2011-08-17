@@ -404,12 +404,13 @@ instance FromAeson JobInfo where
   fromAeson _ = Nothing
          
 instance ToAeson ClientConfiguration where
-  toAeson (ClientConfiguration computer math pbs montecarlo) = 
+  toAeson (ClientConfiguration computer math pbs montecarlo datasetdir) = 
       Object $ M.fromList 
                  [ ("computer", toAeson computer )
                  , ("mathematica", Bool math)
                  , ("pbs", Bool pbs )  
-                 , ("montecarlo", Bool montecarlo) ] 
+                 , ("montecarlo", Bool montecarlo) 
+                 , ("datasetDir", toAeson datasetdir) ] 
 
 instance FromAeson ClientConfiguration where
   fromAeson (Object m) = 
@@ -418,6 +419,7 @@ instance FromAeson ClientConfiguration where
       <*> lookupfunc "mathematica" 
       <*> lookupfunc "pbs" 
       <*> lookupfunc "montecarlo"
+      <*> lookupfunc "datasetDir"
     where lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing
 

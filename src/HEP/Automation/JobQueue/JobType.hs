@@ -14,7 +14,7 @@
 -- Stability    : Experimental
 -- Portability  : unknown 
 -- 
--- Types for a event gen job
+-- Types for a event gen job V4 
 --
 ----------------------------------------------------
 
@@ -28,9 +28,6 @@ import HEP.Automation.MadGraph.UserCut
 import HEP.Automation.MadGraph.SetupType
 
 import HEP.Automation.MadGraph.ModelParser
-
-{-import HEP.Automation.MadGraph.Model.AxiGluon 
-import HEP.Automation.MadGraph.Model.Octet -}
 
 import HEP.Storage.WebDAV.Type 
 

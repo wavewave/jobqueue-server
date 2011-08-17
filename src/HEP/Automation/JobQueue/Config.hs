@@ -4,7 +4,8 @@ data ClientConfiguration = ClientConfiguration {
   computerName :: String, 
   haveMathematica :: Bool,
   havePBS :: Bool, 
-  canMonteCarlo :: Bool 
+  canMonteCarlo :: Bool, 
+  datasetDir :: String
 } deriving Show
 
 
