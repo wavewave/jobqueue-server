@@ -12,4 +12,6 @@ main = do
   putStrLn "jobqueueserver"
   acid <- openAcidState (JobInfoQueue 0 M.empty) 
   sconf <- serverConfigParser "test.conf"
-  warpDebug 3600 (JobQueueServer acid sconf)
+  warpDebug 3600 (JobQueueServer acid sconf) 
+
+  createCheckpoint acid 

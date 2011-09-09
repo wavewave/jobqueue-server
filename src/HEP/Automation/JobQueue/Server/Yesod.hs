@@ -50,8 +50,10 @@ import Data.Acid
 
 import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Server.Work
+import HEP.Automation.JobQueue.Server.JobAssign
 
 import HEP.Storage.WebDAV.Type
+
 
 data JobQueueServer = JobQueueServer { 
   server_acid :: AcidState JobInfoQueue,
@@ -294,7 +296,8 @@ postAssignR = do
                         | jobinfo_priority j1 < jobinfo_priority j2 = GT
                   let priorityordered = sortBy priorcomp listall 
                   let unassigned = filter (\x->jobinfo_status x == Unassigned) priorityordered 
-                  firstJobAssignment cc unassigned
+                  let finished = filter (\x->case jobinfo_status x of {Finished _ -> True ; _ -> False }) priorityordered
+                  firstJobAssignment cc (unassigned,finished)
     Nothing -> do liftIO $ do 
                     putStrLn $ "result not parsed well : " 
                     S.putStrLn bs
@@ -324,18 +327,22 @@ jsonJobInfoQueue (lastid,jobinfos) =
   in  Object $ M.fromList [ ("lastid", lastidjson)
                           , ("map", jobinfosjson) ]
 
-checkJobCompatibility :: ClientConfiguration -> JobInfo -> Bool 
-checkJobCompatibility (ClientConfiguration cname math pbs montecarlo) jobinfo =
-  case jobinfo_detail jobinfo of 
-    EventGen _ _ -> montecarlo
-    MathAnal _ _ _ -> math  
 
-
-
-firstJobAssignment :: ClientConfiguration -> [JobInfo] 
+firstJobAssignment :: ClientConfiguration -> ([JobInfo],[JobInfo]) 
                    -> GGHandler JobQueueServer JobQueueServer (E.Iteratee SC.ByteString IO) RepHtmlJson 
-firstJobAssignment cc jobinfos = 
-    let compatible = filter (checkJobCompatibility cc) jobinfos
+firstJobAssignment cc (unassigned,finished) = do 
+  let r = findFirstJob cc (unassigned,finished)
+  case r of 
+    Nothing -> do 
+      liftIO $ putStrLn "No Compatible Job!"
+      defaultLayoutJson [hamlet| no such job |] (toAeson (Left "no compatible job" :: Either String JobInfo)) 
+    Just assigned -> do 
+      liftIO $ putStrLn "Job Found!"
+      liftIO $ putStrLn (show assigned) 
+      defaultLayoutJson [hamlet| this is html found |] (toAeson (Right assigned :: Either String JobInfo))
+
+
+{-    let compatible = filter (checkJobCompatibility cc) jobinfos
     in  if null compatible 
         then do 
           liftIO $ putStrLn "No Compatible Job!"
@@ -345,6 +352,7 @@ firstJobAssignment cc jobinfos =
           liftIO $ putStrLn "Job Found!"
           liftIO $ putStrLn (show assignedCandidate) 
           defaultLayoutJson [hamlet| this is html found |] (toAeson (Right assignedCandidate :: Either String JobInfo))
+-}
 
 
 

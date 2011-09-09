@@ -1,5 +1,5 @@
 Name:		jobqueue-server
-Version:	0.1.1.0
+Version:	0.1.1.999
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
@@ -17,11 +17,12 @@ Executable jobqueueserver
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 
-Executable jobmigration
-  Main-is: jobmigration.hs
-  hs-source-dirs: src
+Executable jobserialize
+  Main-is: jobserialize.hs
+  hs-source-dirs: migrationsrc
   Build-Depends: base>4, mtl>2, jobqueue-common, yesod, yesod-core, 
-                 bytestring, enumerator, wai-extra, wai, aeson, attoparsec
+                 bytestring, enumerator, wai-extra, wai, aeson, attoparsec, 
+                 hxt, regular, regular-xmlpickler, blaze-builder
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 
@@ -33,9 +34,11 @@ Library
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
                  madgraph-auto,
-                 jobqueue-common, webdav-manager, configparser, parsec
+                 jobqueue-common>=0.1.2.999, webdav-manager, configparser, parsec
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Server.Yesod
+                   HEP.Automation.JobQueue.Server.Work
+                   HEP.Automation.JobQueue.Server.JobAssign
 
 
 		 
