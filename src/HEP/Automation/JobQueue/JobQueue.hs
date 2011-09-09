@@ -48,7 +48,8 @@ data JobInfo = JobInfo {
   jobinfo_id     :: JobNumber, 
   jobinfo_detail :: JobDetail, 
   jobinfo_status :: JobStatus, 
-  jobinfo_priority :: JobPriority
+  jobinfo_priority :: JobPriority, 
+  jobinfo_dependency :: [JobNumber] 
 } deriving (Typeable, Show) 
 
 data JobDetail = EventGen { jobdetail_evset :: EventSet, 
@@ -103,15 +104,11 @@ $(deriveSafeCopy 0 'base ''JobInfoQueue)
 
 addJob :: JobDetail -> Update JobInfoQueue () 
 addJob j = addJobWithPriority j NonUrgent 
-{-
-do JobInfoQueue lastid m <- get
-              let newjob = JobInfo (lastid+1) j Unassigned
-              put $ JobInfoQueue (lastid+1) (M.insert (lastid+1) newjob m)  NonUrgent -}
 
 
 addJobWithPriority :: JobDetail -> JobPriority -> Update JobInfoQueue () 
 addJobWithPriority j p = do JobInfoQueue lastid m <- get
-                            let newjob = JobInfo (lastid+1) j Unassigned p
+                            let newjob = JobInfo (lastid+1) j Unassigned p []
                             put $ JobInfoQueue (lastid+1) (M.insert (lastid+1) newjob m)  
 
 queryAll :: Query JobInfoQueue (Int, [JobInfo]) 

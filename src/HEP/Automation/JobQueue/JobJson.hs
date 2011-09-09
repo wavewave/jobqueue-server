@@ -392,6 +392,7 @@ instance ToAeson JobInfo where
                   , ("detail", toAeson . jobinfo_detail $ i)
                   , ("status", toAeson . jobinfo_status $ i) 
                   , ("priority", toAeson . jobinfo_priority $ i) 
+                  , ("dependency", toAeson . jobinfo_dependency $ i )
                   ]
 
 instance FromAeson JobInfo where
@@ -400,6 +401,7 @@ instance FromAeson JobInfo where
             <*> lookupfunc "detail" 
             <*> lookupfunc "status"  
             <*> lookupfunc "priority"
+            <*> lookupfunc "dependency" 
     where lookupfunc str = M.lookup str m >>= fromAeson  
   fromAeson _ = Nothing
          
