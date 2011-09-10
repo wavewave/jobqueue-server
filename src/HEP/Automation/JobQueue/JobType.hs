@@ -2,7 +2,9 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, StandaloneDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 
 ----------------------------------------------------
 --
@@ -34,12 +36,60 @@ import HEP.Storage.WebDAV.Type
 import Data.SafeCopy
 import Data.Serialize.Get
 
+import Data.Typeable
+import Data.Data
 
-data EventSet = forall a. (Model a) => 
+data EventSet = forall a. Model a => 
   EventSet {
     evset_psetup :: ProcessSetup a, 
     evset_rsetup :: RunSetup a
   } 
+
+--deriving instance Show EventSet
+--deriving instance Typeable EventSet
+-- deriving instance Data EventSet 
+
+
+newgfoldl :: forall c. (forall d b. Data d => c (d->b) -> d -> c b)
+             -> (forall g. g -> c g) 
+             -> EventSet 
+             -> c EventSet 
+newgfoldl k z (EventSet a1 a2) =  
+  (z EventSet `k` a1) `k` a2  
+
+instance Data EventSet where
+  gfoldl = newgfoldl 
+--  gfoldl ::
+--  gfoldl k z x = (case x of 
+--                   EventSet (a1 :: ProcessSetup b) (a2 :: RunSetup b) -> 
+--                     (z EventSet `k` a1 :: c (RunSetup b -> EventSet))`k` (a2-- :: RunSetup b)) :: c EventSet 
+  gunfold k z _ = error "gunfold for EventSet" -- k (k (z EventSet))
+  toConstr (EventSet _ _) = cEventSet
+  dataTypeOf _ = tEventSet 
+  
+
+instance Typeable EventSet where
+  typeOf _
+    = mkTyConApp
+        (mkTyCon "HEP.Automation.JobQueue.JobType.EventSet") [] 
+  
+cEventSet :: Constr
+
+cEventSet
+  = mkConstr
+      tEventSet
+      "EventSet"
+      ["evset_psetup", "evset_rsetup"]
+      Prefix
+tEventSet :: DataType
+tEventSet
+  = mkDataType
+      "HEP.Automation.JobQueue.JobType.EventSet"
+      [cEventSet]
+
+
+-- (Show, Typeable, Data)
+
 
 instance Show EventSet where
   show (EventSet p r) = show p ++ "\n" ++ show r 

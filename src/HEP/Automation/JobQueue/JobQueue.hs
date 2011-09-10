@@ -50,7 +50,9 @@ data JobInfo = JobInfo {
   jobinfo_status :: JobStatus, 
   jobinfo_priority :: JobPriority, 
   jobinfo_dependency :: [JobNumber] 
-} deriving (Typeable, Show) 
+} deriving (Typeable, Show, Data) 
+
+type ManyJobInfo = [ (Int, JobInfo) ] 
 
 data JobDetail = EventGen { jobdetail_evset :: EventSet, 
                             jobdetail_remotedir :: WebDAVRemoteDir
@@ -59,7 +61,7 @@ data JobDetail = EventGen { jobdetail_evset :: EventSet,
                             jobdetail_evset :: EventSet, 
                             jobdetail_remotedir :: WebDAVRemoteDir
                           } 
-               deriving (Show)
+               deriving (Show,Typeable,Data)
 
 data JobStatus = Unassigned 
                | Assigned String 
@@ -102,14 +104,15 @@ data JobInfoQueue = JobInfoQueue {
 
 $(deriveSafeCopy 0 'base ''JobInfoQueue) 
 
-addJob :: JobDetail -> Update JobInfoQueue () 
+addJob :: JobDetail -> Update JobInfoQueue (Int,JobInfo) 
 addJob j = addJobWithPriority j NonUrgent 
 
 
-addJobWithPriority :: JobDetail -> JobPriority -> Update JobInfoQueue () 
+addJobWithPriority :: JobDetail -> JobPriority -> Update JobInfoQueue (Int,JobInfo) 
 addJobWithPriority j p = do JobInfoQueue lastid m <- get
                             let newjob = JobInfo (lastid+1) j Unassigned p []
                             put $ JobInfoQueue (lastid+1) (M.insert (lastid+1) newjob m)  
+                            return (lastid+1,newjob)
 
 queryAll :: Query JobInfoQueue (Int, [JobInfo]) 
 queryAll = do JobInfoQueue lastid m <- ask 
