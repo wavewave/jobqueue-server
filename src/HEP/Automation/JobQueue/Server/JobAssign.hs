@@ -1,11 +1,8 @@
 module HEP.Automation.JobQueue.Server.JobAssign where
 
-import qualified Data.IntMap as IM
-
 import HEP.Automation.JobQueue.Config
 import HEP.Automation.JobQueue.JobQueue
 
-import Data.List 
 import Data.Maybe
 
 checkJobCompatibility :: ClientConfiguration -> JobInfo -> Bool 

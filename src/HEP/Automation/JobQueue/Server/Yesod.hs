@@ -24,17 +24,17 @@ module HEP.Automation.JobQueue.Server.Yesod where
 import Yesod hiding (update)
 
 import Network.Wai
-import Network.Wai.Parse
+
+import Control.Monad
+import Control.Monad.Trans.Maybe
 
 import qualified Data.Enumerator as E
+import qualified Data.Enumerator.List as EL
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as SC
 
 import Data.Aeson.Types hiding (parse)
-import Data.Aeson.Parser
-import Data.Attoparsec
 
-import HEP.Automation.MadGraph.SetupType
 import HEP.Automation.MadGraph.Util 
 
 import HEP.Automation.JobQueue.JobType 
@@ -43,13 +43,11 @@ import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config
 
 import qualified Data.Map as M
-import qualified Data.IntMap as IM 
 import Data.List 
 
 import Data.Acid 
 
 import HEP.Automation.JobQueue.Server.Type
-import HEP.Automation.JobQueue.Server.Work
 import HEP.Automation.JobQueue.Server.JobAssign
 
 import HEP.Storage.WebDAV.Type
@@ -64,6 +62,7 @@ mkYesod "JobQueueServer" [parseRoutes|
 / HomeR GET
 /job/#JobNumber JobR 
 /queue/#Int QueueR POST
+/queuemany QueueManyR POST 
 /queuelist QueueListR GET 
 /queuelist/unassigned QueueListUnassignedR GET
 /queuelist/inprogress QueueListInprogressR GET
@@ -76,6 +75,49 @@ instance Yesod JobQueueServer where
   approot _ = ""
 
 type Handler = GHandler JobQueueServer JobQueueServer 
+
+replaceLst :: (Eq a) => [(a,b)] -> [a] -> Maybe [b]
+replaceLst assoc lst = mapM (\x -> lookup x assoc) lst
+
+postQueueManyR :: Handler RepHtmlJson 
+postQueueManyR =do
+  liftIO $ putStrLn "postQueueManyRassignR called"  
+  JobQueueServer acid _ <- getYesod  
+  _ <- getRequest
+  bs' <- lift EL.consume
+  let bs = S.concat bs' 
+  let parsed = (parseJson bs :: Maybe ManyJobInfo)
+  case parsed of 
+    Just idjinfos -> do 
+      let uploadjob :: (Int,JobInfo) -> Handler (Int,Int)
+          uploadjob (i,jinfo) = do 
+            let priority = jobinfo_priority jinfo
+                detail = jobinfo_detail jinfo
+            (i',_) <- liftIO $ update acid (AddJobWithPriority detail priority)
+            return (i,i')
+      let foldfunc :: [(Int,Int)] -> (Int,JobInfo) ->  Handler [(Int,Int)]
+          foldfunc acc x = do 
+            r <- uploadjob x 
+            return (r:acc)
+      idsublst :: [(Int,Int)] <- foldM foldfunc [] idjinfos
+      let updatejob :: [(Int,Int)] -> (Int,JobInfo) -> MaybeT Handler (EventResult UpdateJob)
+          updatejob lst (i,jinfo) = do
+            i' <- MaybeT . return $ lookup i lst   
+            let dep = jobinfo_dependency jinfo
+            dep' <- MaybeT . return $ replaceLst lst dep  
+            let jinfo' = jinfo { jobinfo_dependency = dep' } 
+            liftIO $ update acid (UpdateJob i' jinfo')  
+      ur <- runMaybeT $ mapM (updatejob idsublst) idjinfos
+      case ur of 
+        Just _ -> do 
+          defaultLayoutJson [hamlet| this is html found |] (toAeson ("Success" :: String))
+        Nothing -> do 
+          defaultLayoutJson [hamlet| this is html found |] (toAeson ("Failed" :: String))
+    Nothing -> do 
+      liftIO $ do 
+        putStrLn $ "result not parsed well : " 
+        S.putStrLn bs
+      defaultLayoutJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
 
 
 getHomeR :: Handler RepHtml 
@@ -100,7 +142,7 @@ deleteJobR n = do
   r <- liftIO $ query acid (QueryJob n) 
   case r of 
     Nothing -> defaultLayoutJson [hamlet|this is html|] (toAeson ("No such job" :: String))
-    Just j  -> do
+    Just _  -> do
       liftIO $ update acid (DeleteJob n) >>= print  
       defaultLayoutJson [hamlet|this is html|] (toAeson ("Delete Succeed" :: String))
 
@@ -128,8 +170,8 @@ getJobR n = do
               jstatus = show . jobinfo_status $ j 
               jpriority = show . jobinfo_priority $ j 
           case (jobdetail_evset jdet) of 
-            EventSet p r -> do 
-              let wname = makeRunName p r  
+            EventSet ps rs -> do 
+              let wname = makeRunName ps rs  
               setTitle (Yesod.string ("Job " ++ show n ++ " detail" )) 
               [hamlet| 
                  <h1> Job #{n} 
@@ -148,9 +190,9 @@ putJobR :: Int -> Handler RepHtmlJson
 putJobR n = do 
   liftIO $ putStrLn "putJobR called"
   JobQueueServer acid _ <- getYesod 
-  r <- getRequest
-  let wr = reqWaiRequest r 
-  bs' <- lift E.consume
+  _ <- getRequest
+  -- let wr = reqWaiRequest r 
+  bs' <- lift EL.consume
   let bs = S.concat bs' 
   let parsed = (parseJson bs :: Maybe JobInfo)
   case parsed of 
@@ -170,9 +212,9 @@ postQueueR :: Int -> Handler ()
 postQueueR prior = do 
   liftIO $ putStrLn "postQueueR called" 
   JobQueueServer acid _ <- getYesod  
-  r <- getRequest
-  let wr = reqWaiRequest r 
-  bs' <- lift E.consume
+  _ <- getRequest
+  -- let wr = reqWaiRequest r 
+  bs' <- lift EL.consume
   let bs = S.concat bs' 
   let parsed = (parseJson bs :: Maybe JobDetail)
   case parsed of 
@@ -241,7 +283,7 @@ hamletListJobs url str lst = do
                       EventGen _ _ -> "EventGen"
                       MathAnal _ _ _ -> "Mathematica"
        
-  let remotedir = webdav_remotedir . jobdetail_remotedir . jobinfo_detail  
+  -- let remotedir = webdav_remotedir . jobdetail_remotedir . jobinfo_detail  
   let jobstatusshow :: JobInfo -> String 
       jobstatusshow job = case jobinfo_status job of 
                             Unassigned -> "Unassigned"
@@ -283,8 +325,8 @@ postAssignR :: Handler RepHtmlJson
 postAssignR = do 
   liftIO $ putStrLn "assignR called"  
   JobQueueServer acid _ <- getYesod  
-  r <- getRequest
-  bs' <- lift E.consume
+  _ <- getRequest
+  bs' <- lift EL.consume
   let bs = S.concat bs' 
   let parsed = (parseJson bs :: Maybe ClientConfiguration) 
   case parsed of 
@@ -342,17 +384,6 @@ firstJobAssignment cc (unassigned,finished) = do
       defaultLayoutJson [hamlet| this is html found |] (toAeson (Right assigned :: Either String JobInfo))
 
 
-{-    let compatible = filter (checkJobCompatibility cc) jobinfos
-    in  if null compatible 
-        then do 
-          liftIO $ putStrLn "No Compatible Job!"
-          defaultLayoutJson [hamlet| no such job |] (toAeson (Left "no compatible job" :: Either String JobInfo)) 
-        else do 
-          let assignedCandidate = head compatible
-          liftIO $ putStrLn "Job Found!"
-          liftIO $ putStrLn (show assignedCandidate) 
-          defaultLayoutJson [hamlet| this is html found |] (toAeson (Right assignedCandidate :: Either String JobInfo))
--}
 
 
 

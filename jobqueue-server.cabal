@@ -12,7 +12,7 @@ Cabal-Version:  >= 1.2
 Executable jobqueueserver
   Main-is: jobqueueserver.hs
   hs-source-dirs: src
-  Build-Depends: base>4, mtl>2, jobqueue-common, yesod, yesod-core, 
+  Build-Depends: base > 4, mtl > 2, jobqueue-common, yesod, yesod-core, 
                  bytestring, enumerator, wai-extra, wai, aeson, attoparsec
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
@@ -32,13 +32,8 @@ Library
   hs-source-dirs: src
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
-  Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
-                 madgraph-auto,
-                 jobqueue-common>=0.1.2.999, webdav-manager, configparser, parsec
-  Exposed-Modules: 
-                   HEP.Automation.JobQueue.Server.Yesod
-                   HEP.Automation.JobQueue.Server.Work
-                   HEP.Automation.JobQueue.Server.JobAssign
+  Build-Depends: base > 4, containers, mtl > 2, safecopy > 0.5, acid-state > 0.4, madgraph-auto, jobqueue-common >= 0.1.2.999, configparser, parsec, webdav-manager >= 0.0.4, transformers
+  Exposed-Modules: HEP.Automation.JobQueue.Server.JobAssign, HEP.Automation.JobQueue.Server.Work, HEP.Automation.JobQueue.Server.Yesod
 
 
 		 

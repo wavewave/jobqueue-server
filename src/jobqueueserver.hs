@@ -8,6 +8,7 @@ import Data.Acid
 import qualified Data.IntMap as M
 import Yesod
 
+main :: IO ()
 main = do 
   putStrLn "jobqueueserver"
   acid <- openAcidState (JobInfoQueue 0 M.empty) 
