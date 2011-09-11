@@ -23,4 +23,4 @@ findFirstJob cc (unassigned,finished) = do
       workable = mapMaybe checkDependency compatible
   if null workable
     then Nothing 
-    else Just (head compatible)
+    else Just (head workable)
