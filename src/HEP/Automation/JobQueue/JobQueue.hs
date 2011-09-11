@@ -50,7 +50,7 @@ data JobInfo = JobInfo {
   jobinfo_status :: JobStatus, 
   jobinfo_priority :: JobPriority, 
   jobinfo_dependency :: [JobNumber] 
-} deriving (Typeable, Show, Data) 
+} deriving (Show, Typeable) 
 
 type ManyJobInfo = [ (Int, JobInfo) ] 
 
@@ -61,7 +61,7 @@ data JobDetail = EventGen { jobdetail_evset :: EventSet,
                             jobdetail_evset :: EventSet, 
                             jobdetail_remotedir :: WebDAVRemoteDir
                           } 
-               deriving (Show,Typeable,Data)
+               deriving (Show, Typeable)
 
 data JobStatus = Unassigned 
                | Assigned String 

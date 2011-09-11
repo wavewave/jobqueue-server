@@ -425,6 +425,18 @@ instance FromAeson ClientConfiguration where
     where lookupfunc str = M.lookup str m >>= fromAeson
   fromAeson _ = Nothing
 
+instance (FromAeson a, FromAeson b) => FromAeson (a,b) where
+  fromAeson (Array vec) = let lst = V.toList vec
+                          in  if Prelude.length lst == 2 
+                              then let a = lst !! 0 
+                                       b = lst !! 1 
+                                   in  (,) <$> fromAeson a <*> fromAeson b
+                              else Nothing 
+
+instance (ToAeson a, ToAeson b) => ToAeson (a,b) where
+  toAeson (a,b) = Array (V.fromList [toAeson a, toAeson b])
+
+
 parseJson :: (FromAeson a) => S.ByteString -> Maybe a
 parseJson bs =
   let resultjson = parse json bs
