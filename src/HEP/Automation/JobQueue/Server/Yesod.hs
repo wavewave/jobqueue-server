@@ -81,7 +81,7 @@ replaceLst assoc lst = mapM (\x -> lookup x assoc) lst
 
 postQueueManyR :: Handler RepHtmlJson 
 postQueueManyR =do
-  liftIO $ putStrLn "postQueueManyRassignR called"  
+  liftIO $ putStrLn "postQueueManyR called"  
   JobQueueServer acid _ <- getYesod  
   _ <- getRequest
   bs' <- lift EL.consume
@@ -104,8 +104,8 @@ postQueueManyR =do
           updatejob lst (i,jinfo) = do
             i' <- MaybeT . return $ lookup i lst   
             let dep = jobinfo_dependency jinfo
-            dep' <- MaybeT . return $ replaceLst lst dep  
-            let jinfo' = jinfo { jobinfo_dependency = dep' } 
+            dep' <- MaybeT . return $ replaceLst lst dep
+            let jinfo' = jinfo { jobinfo_id = i', jobinfo_dependency = dep' }
             liftIO $ update acid (UpdateJob i' jinfo')  
       ur <- runMaybeT $ mapM (updatejob idsublst) idjinfos
       case ur of 
@@ -308,6 +308,7 @@ hamletListJobs url str lst = do
         <td> status
         <td> client
         <td> priority
+        <td> dependency
       $forall job <- lst 
         <tr 
           <td> 
@@ -317,6 +318,7 @@ hamletListJobs url str lst = do
           <td> #{jobstatusshow job}
           <td> #{assignedclient job}
           <td> #{show (jobinfo_priority job)}
+          <td> #{show (jobinfo_dependency job)}
   |]
 
 
