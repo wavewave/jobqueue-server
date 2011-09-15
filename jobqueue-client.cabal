@@ -16,7 +16,7 @@ Executable jobclient
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
                jobqueue-common, parsec, pipeline, 
                http-types, http-enumerator > 0.6, 
-               madgraph-auto, bytestring, aeson, cmdargs
+               madgraph-auto, bytestring, aeson-native, cmdargs
 
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
@@ -35,7 +35,7 @@ Library
   Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
                jobqueue-common, parsec, pipeline, 
                http-types, http-enumerator > 0.6, 
-               madgraph-auto, bytestring, aeson, cmdargs, 
+               madgraph-auto, bytestring, aeson-native, cmdargs, 
                webdav-manager, filepath
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Client.Type 
