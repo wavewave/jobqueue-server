@@ -128,6 +128,16 @@ instance SafeCopy UserCut where
     safePut met; safePut etacutlep; safePut etcutlep; safePut etacutjet; safePut etcutjet }
   getCopy = contain $ UserCut <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
 
+instance SafeCopy LHESanitizerType where 
+  putCopy NoLHESanitize = contain (safePut (0 :: Int)) 
+  putCopy (LHESanitize pid) = contain $ do {safePut (1 :: Int); safePut pid }
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return NoLHESanitize
+                           1 -> do (pid :: Int) <- safeGet
+                                   return (LHESanitize pid) 
+
+
 instance SafeCopy PGSType where
   putCopy NoPGS       = contain (safePut (0 :: Int))
   putCopy RunPGS      = contain (safePut (1 :: Int))
@@ -141,7 +151,7 @@ instance SafeCopy PGSType where
 instance SafeCopy EventSet where
   putCopy (EventSet p r) = 
     let PS m pr pb wn = p 
-        RS mp ne ma rgr rgs mat cu py uc pg ja hu sn = r 
+        RS mp ne ma rgr rgs mat cu py uc ls pg ja hu sn = r 
     in  contain $ do safePut (modelName m)  
                      safePut pr  
                      safePut pb 
@@ -155,6 +165,7 @@ instance SafeCopy EventSet where
                      safePut cu 
                      safePut py 
                      safePut uc 
+                     safePut ls
                      safePut pg 
                      safePut ja
                      safePut hu
@@ -175,7 +186,7 @@ instance SafeCopy EventSet where
         getRSetup :: (Model a) => a -> Get (RunSetup a)
         getRSetup _mdl = RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
                             <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
-                            <*> safeGet <*> safeGet <*> safeGet
+                            <*> safeGet <*> safeGet <*> safeGet <*> safeGet
 
     let maybemodelbox = modelParse modelstr 
     case maybemodelbox of 
