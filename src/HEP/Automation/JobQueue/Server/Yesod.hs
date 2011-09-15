@@ -74,10 +74,16 @@ mkYesod "JobQueueServer" [parseRoutes|
 instance Yesod JobQueueServer where
   approot _ = ""
 
-type Handler = GHandler JobQueueServer JobQueueServer 
+-- type Handler = GHandler JobQueueServer JobQueueServer 
 
 replaceLst :: (Eq a) => [(a,b)] -> [a] -> Maybe [b]
 replaceLst assoc lst = mapM (\x -> lookup x assoc) lst
+
+makeRepHtmlJsonFromHamletJson :: HtmlUrl (Route JobQueueServer) -> Value -> Handler RepHtmlJson
+makeRepHtmlJsonFromHamletJson hlet j = do
+  RepHtml rhtml <- hamletToRepHtml hlet 
+  RepJson json <- jsonToRepJson j 
+  return (RepHtmlJson rhtml json) 
 
 postQueueManyR :: Handler RepHtmlJson 
 postQueueManyR =do
@@ -110,20 +116,30 @@ postQueueManyR =do
       ur <- runMaybeT $ mapM (updatejob idsublst) idjinfos
       case ur of 
         Just _ -> do 
-          defaultLayoutJson [hamlet| this is html found |] (toAeson ("Success" :: String))
+          let hlet = [hamlet| 
+<html>
+  <head>
+     <title> No HTML support
+  <body> 
+     <h1> This page does not have a HTML support 
+|] 
+
+          makeRepHtmlJsonFromHamletJson hlet $ toAeson ("Success" :: String)
+--          defaultLayoutJson rhtml rjon 
+--          return (RepHtmlJson htmlrep jsonrep)
         Nothing -> do 
-          defaultLayoutJson [hamlet| this is html found |] (toAeson ("Failed" :: String))
+          makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toAeson ("Failed" :: String))
     Nothing -> do 
       liftIO $ do 
         putStrLn $ "result not parsed well : " 
         S.putStrLn bs
-      defaultLayoutJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
+      makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
 
 
 getHomeR :: Handler RepHtml 
 getHomeR = do 
   liftIO $ putStrLn "getHomeR called"
-  defaultLayout [hamlet|Hello World!|]
+  hamletToRepHtml [hamlet|Hello World!|]
 
 handleJobR :: JobNumber -> Handler RepHtmlJson
 handleJobR number = do 
@@ -141,10 +157,10 @@ deleteJobR n = do
   JobQueueServer acid _ <- getYesod
   r <- liftIO $ query acid (QueryJob n) 
   case r of 
-    Nothing -> defaultLayoutJson [hamlet|this is html|] (toAeson ("No such job" :: String))
+    Nothing -> makeRepHtmlJsonFromHamletJson [hamlet|this is html|] (toAeson ("No such job" :: String))
     Just _  -> do
       liftIO $ update acid (DeleteJob n) >>= print  
-      defaultLayoutJson [hamlet|this is html|] (toAeson ("Delete Succeed" :: String))
+      makeRepHtmlJsonFromHamletJson [hamlet|success|] (toAeson ("Delete Succeed" :: String))
 
 getJobR :: Int -> Handler RepHtmlJson
 getJobR n = do
@@ -156,11 +172,15 @@ getJobR n = do
                Just j  -> Right j
   let getJobhamlet = case rstr of 
         Left e -> do  
-          setTitle (Yesod.string ("Job " ++ show n ++ " detail" ))
-          [hamlet| 
-             <h1> Job #{n} 
-             <p 
-                #{e}
+          let titlestr = "Job " ++ show n ++ " detail" 
+          [hamlet|
+             <html> 
+               <head> 
+                 <title>#{titlestr}
+               <body> 
+                 <h1> Job #{n} 
+                 <p 
+                    #{e}
           |]
         Right j -> do 
           let jid = jobinfo_id j 
@@ -172,19 +192,23 @@ getJobR n = do
           case (jobdetail_evset jdet) of 
             EventSet ps rs -> do 
               let wname = makeRunName ps rs  
-              setTitle (Yesod.string ("Job " ++ show n ++ " detail" )) 
+                  titlestr = "Job " ++ show n ++ " detail"  -- setTitle () 
               [hamlet| 
-                 <h1> Job #{n} 
-                 <ul 
-                   <li> job id = #{jid} 
-                   <li> job name = #{wname} 
-                   <li> job status = #{jstatus}
-                   <li> job priority = #{jpriority}  
-                   <li> job remote dir = 
-                     <a href=#{url}/#{jremotedir}> #{jremotedir} 
-                   <li> job detail = #{show jdet} 
+                 <html> 
+                   <head> 
+                     <title>#{titlestr}
+                   <body>
+                     <h1> Job #{n} 
+                     <ul 
+                       <li> job id = #{jid} 
+                       <li> job name = #{wname} 
+                       <li> job status = #{jstatus}
+                       <li> job priority = #{jpriority}  
+                       <li> job remote dir = 
+                         <a href=#{url}/#{jremotedir}> #{jremotedir} 
+                       <li> job detail = #{show jdet} 
               |]       
-  defaultLayoutJson getJobhamlet (toAeson rstr)
+  makeRepHtmlJsonFromHamletJson getJobhamlet (toAeson rstr)
 
 putJobR :: Int -> Handler RepHtmlJson
 putJobR n = do 
@@ -201,12 +225,12 @@ putJobR n = do
         putStrLn $ SC.unpack bs
         putStrLn $ show result
         update acid (UpdateJob n result) >>= print  
-      defaultLayoutJson [hamlet| this is html found |] (toAeson ("Success" :: String))
+      makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toAeson ("Success" :: String))
     Nothing -> do
       liftIO $ do 
         putStrLn $ "result not parsed well : " 
         putStrLn $ SC.unpack bs
-      defaultLayoutJson [hamlet| this is not html |] (toAeson ("Fail" :: String))
+      makeRepHtmlJsonFromHamletJson [hamlet| this is not html |] (toAeson ("Fail" :: String))
 
 postQueueR :: Int -> Handler ()
 postQueueR prior = do 
@@ -235,7 +259,7 @@ getQueueListR = do
   let url = server_main sconf 
   r <- liftIO $ query acid QueryAll
   let result = snd r
-  defaultLayoutJson (hamletListJobs url "all" result) (toAeson result)
+  makeRepHtmlJsonFromHamletJson (hamletListJobs url "all" result) (toAeson result)
 
 getQueueListUnassignedR :: Handler RepHtmlJson
 getQueueListUnassignedR = do 
@@ -245,7 +269,7 @@ getQueueListUnassignedR = do
   r <- liftIO $ query acid QueryAll
   let f j = jobinfo_status j == Unassigned
       result = filter f (snd r)
-  defaultLayoutJson (hamletListJobs url "unassigned" result) (toAeson result)
+  makeRepHtmlJsonFromHamletJson (hamletListJobs url "unassigned" result) (toAeson result)
 
 getQueueListInprogressR :: Handler RepHtmlJson
 getQueueListInprogressR = do 
@@ -259,7 +283,7 @@ getQueueListInprogressR = do
               BeingTested _ -> True
               _ -> False 
       result = filter f (snd r)
-  defaultLayoutJson (hamletListJobs url "inprogress" result) (toAeson result)
+  makeRepHtmlJsonFromHamletJson (hamletListJobs url "inprogress" result) (toAeson result)
 
 getQueueListFinishedR :: Handler RepHtmlJson
 getQueueListFinishedR = do 
@@ -271,9 +295,9 @@ getQueueListFinishedR = do
               Finished _ -> True 
               _ -> False
       result = filter f (snd r)
-  defaultLayoutJson (hamletListJobs url "finished" result) (toAeson result)
+  makeRepHtmlJsonFromHamletJson (hamletListJobs url "finished" result) (toAeson result)
 
-hamletListJobs :: (Yesod master) => String -> String -> [JobInfo] -> GWidget sub master ()
+hamletListJobs :: String -> String -> [JobInfo] -> HtmlUrl (Route JobQueueServer)
 hamletListJobs url str lst = do 
   let jobname jdet = 
         case (jobdetail_evset jdet) of 
@@ -345,7 +369,7 @@ postAssignR = do
     Nothing -> do liftIO $ do 
                     putStrLn $ "result not parsed well : " 
                     S.putStrLn bs
-                  defaultLayoutJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
+                  makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
 
 
 getConfigWebDAVR :: Handler RepHtmlJson 
@@ -355,14 +379,19 @@ getConfigWebDAVR = do
   liftIO $ putStrLn "getConfigWebDAVR called" 
   let url = webdav_server_url wdav 
   let configWebDAVhamlet = do 
-        setTitle "webdav server configuration"
-        [hamlet| 
-<h1> WebDAV configuration
-<h2> WebDAV server is 
-<p
-  <a href=#{url}>  #{url} 
+--        setTitle "webdav server configuration"
+        [hamlet|
+!!!
+<html>
+  <head> 
+    <title> WebDAV configuration
+  <body>   
+    <h1> WebDAV configuration
+    <h2> WebDAV server is 
+    <p
+      <a href=#{url}>  #{url} 
 |]
-  defaultLayoutJson configWebDAVhamlet (toAeson wdav)  
+  makeRepHtmlJsonFromHamletJson configWebDAVhamlet (toAeson wdav)  
               
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 
@@ -379,11 +408,11 @@ firstJobAssignment cc (unassigned,finished) = do
   case r of 
     Nothing -> do 
       liftIO $ putStrLn "No Compatible Job!"
-      defaultLayoutJson [hamlet| no such job |] (toAeson (Left "no compatible job" :: Either String JobInfo)) 
+      makeRepHtmlJsonFromHamletJson [hamlet| no such job |] (toAeson (Left "no compatible job" :: Either String JobInfo)) 
     Just assigned -> do 
       liftIO $ putStrLn "Job Found!"
       liftIO $ putStrLn (show assigned) 
-      defaultLayoutJson [hamlet| this is html found |] (toAeson (Right assigned :: Either String JobInfo))
+      makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toAeson (Right assigned :: Either String JobInfo))
 
 
 
