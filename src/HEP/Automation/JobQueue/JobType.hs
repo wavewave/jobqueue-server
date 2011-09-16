@@ -130,12 +130,12 @@ instance SafeCopy UserCut where
 
 instance SafeCopy LHESanitizerType where 
   putCopy NoLHESanitize = contain (safePut (0 :: Int)) 
-  putCopy (LHESanitize pid) = contain $ do {safePut (1 :: Int); safePut pid }
+  putCopy (LHESanitize pids) = contain $ do {safePut (1 :: Int); safePut pids }
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of 
                            0 -> return NoLHESanitize
-                           1 -> do (pid :: Int) <- safeGet
-                                   return (LHESanitize pid) 
+                           1 -> do (pids :: [Int]) <- safeGet
+                                   return (LHESanitize pids) 
 
 
 instance SafeCopy PGSType where
