@@ -15,7 +15,7 @@ commandLineProcess (List qtyp conf) = do
   readConfigFile conf >>= flip startListPhase qtyp
 commandLineProcess (Start conf) = do
   putStrLn "start called" 
-  readConfigFile conf >>= flip startWaitPhase 3
+  readConfigFile conf >>= \x -> startWaitPhase x 3 10 
 commandLineProcess (StartTest conf) = do
   putStrLn "starttest called" 
   readConfigFile conf >>= flip startWaitTestPhase 3

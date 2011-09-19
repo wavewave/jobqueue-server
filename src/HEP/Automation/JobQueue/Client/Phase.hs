@@ -45,9 +45,14 @@ import HEP.Automation.JobQueue.Config
 -- import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Client.Job
 
-startWaitPhase :: LocalConfiguration -> Int -> IO () 
-startWaitPhase lc n = do 
+import Control.Monad
+
+startWaitPhase :: LocalConfiguration -> Int -> Int -> IO () 
+startWaitPhase lc n assignfailure = do 
   putStrLn "starting Wait Phase"
+  when (assignfailure < 0) $ do 
+      putStrLn "too many assign failure. kill the process" 
+      error "assign failure kill"
   newn <- if (n < 0) 
             then do 
               putStrLn "too many failure, need to take a rest" 
@@ -57,29 +62,31 @@ startWaitPhase lc n = do
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   r <- jobqueueAssign url (lc_clientConfiguration lc) 
   case r of 
-    Just jinfo -> startJobPhase lc jinfo newn
+    Just jinfo -> startJobPhase lc jinfo newn 10
     Nothing -> do
+      putStrLn "assign failure" 
+      putStrLn ("remaining chance : " ++ show assignfailure)
       threadDelay . (*1000000) . nc_polling . lc_networkConfiguration $ lc
-      startWaitPhase lc newn
+      startWaitPhase lc newn (assignfailure-1)
 
-startJobPhase :: LocalConfiguration -> JobInfo -> Int -> IO ()
-startJobPhase lc jinfo n = do 
+startJobPhase :: LocalConfiguration -> JobInfo -> Int -> Int -> IO ()
+startJobPhase lc jinfo n af = do 
   putStrLn "starting Job Phase"
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   let cname = computerName . lc_clientConfiguration $ lc
   -- check job here
   r <- confirmAssignment url cname jinfo 
   case r of
-    Nothing -> startWaitPhase lc (n-1)
+    Nothing -> startWaitPhase lc (n-1) af
     Just jinfo' -> do 
       putStrLn "job assigned well"
       r' <- getWebDAVInfo url
       case r' of 
-        Nothing -> startWaitPhase lc n
+        Nothing -> startWaitPhase lc n af
         Just sconf -> do 
           let wc = WorkConfig lc sconf
               job = jobMatch jinfo
-              back = backToUnassigned url jinfo >> startWaitPhase lc (n-1)
+              back = backToUnassigned url jinfo >> startWaitPhase lc (n-1) af
           putStrLn $ "Work Configuration = " ++ show wc
           b1 <- pipeline_checkSystem job wc jinfo'
           threadDelay 10000000
@@ -106,7 +113,7 @@ startJobPhase lc jinfo n = do
                           changeStatus url jinfo' (Finished cname)
                           threadDelay 10000000
                           return ()
-  startWaitPhase lc n 
+  startWaitPhase lc n af
 
 startGetPhase :: LocalConfiguration -> Int -> IO () 
 startGetPhase lc jid = do
