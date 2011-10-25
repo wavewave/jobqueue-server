@@ -135,20 +135,39 @@ instance ToAeson MachineType where
                                               [ ("Type",String "Parton")
                                               , ("Energy",Number (D energy))
                                               , ("Detector", toAeson detector)]) 
+  toAeson (PolParton energy ipol detector) = 
+    let p1 = (rhpol_percent . particle1pol) ipol 
+        p2 = (rhpol_percent . particle2pol) ipol 
+    in  Object (M.fromList 
+                  [ ("Type",String "Parton")
+                  , ("Energy",Number (D energy))
+                  , ("Detector", toAeson detector)
+                  , ("InitPol1", Number (D p1)) 
+                  , ("InitPol2", Number (D p2))
+                  ]) 
+
 
 instance FromAeson MachineType where
-  fromAeson (Object m) = do t <- M.lookup "Type" m
-                            case t of 
-                              String "TeVatron" -> return TeVatron 
-                              String "LHC7"     -> LHC7 <$> lookupfunc "Detector"
-                              String "LHC14"    -> LHC14 <$> lookupfunc "Detector"
-                              String "Parton"   -> do 
-                                Parton <$> lookupfunc "Energy" 
-                                       <*> lookupfunc "Detector"
-                              _ -> Nothing
+  fromAeson (Object m) = do 
+    t <- M.lookup "Type" m
+    case t of 
+      String "TeVatron" -> return TeVatron 
+      String "LHC7"     -> LHC7 <$> lookupfunc "Detector"
+      String "LHC14"    -> LHC14 <$> lookupfunc "Detector"
+      String "Parton"   -> do 
+        Parton <$> lookupfunc "Energy" 
+               <*> lookupfunc "Detector"
+      String "PolParton"   -> do 
+        energy   <- lookupfunc "Energy" 
+        ipol1    <- lookupfunc "InitPol1"
+        ipol2    <- lookupfunc "InitPol2"
+        detector <- lookupfunc "Detector"
+        return (PolParton energy 
+                          (InitPolarization (RH ipol1) (RH ipol2)) 
+                          detector)
+      _ -> Nothing
     where lookupfunc str = M.lookup str m >>= fromAeson 
   fromAeson _ = Nothing 
-
 
 instance ToAeson MatchType where
   toAeson NoMatch = String "NoMatch"
@@ -433,6 +452,7 @@ instance (FromAeson a, FromAeson b) => FromAeson (a,b) where
                                        b = lst !! 1 
                                    in  (,) <$> fromAeson a <*> fromAeson b
                               else Nothing 
+  fromAeson _ = Nothing
 
 instance (ToAeson a, ToAeson b) => ToAeson (a,b) where
   toAeson (a,b) = Array (V.fromList [toAeson a, toAeson b])

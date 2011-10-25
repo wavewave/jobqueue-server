@@ -73,12 +73,27 @@ instance SafeCopy MachineType where
   putCopy (LHC14 detector)  = contain $ do {safePut (2 :: Int); safePut detector} 
   putCopy (Parton energy detector) = 
     contain $ do {safePut (3 :: Int); safePut energy; safePut detector}
-  getCopy = contain $ do (x :: Int) <- safeGet 
-                         case x of 
-                           0 -> return TeVatron 
-                           1 -> LHC7 <$> safeGet
-                           2 -> LHC14 <$> safeGet
-                           3 -> Parton <$> safeGet <*> safeGet
+  putCopy (PolParton energy ipol detector) = 
+    contain $ do safePut (4 :: Int) 
+                 safePut energy 
+                 (safePut . rhpol_percent . particle1pol ) ipol 
+                 (safePut . rhpol_percent . particle2pol ) ipol 
+                 safePut detector
+
+  getCopy = 
+    contain $ do 
+      (x :: Int) <- safeGet 
+      case x of 
+        0 -> return TeVatron 
+        1 -> LHC7 <$> safeGet
+        2 -> LHC14 <$> safeGet
+        3 -> Parton <$> safeGet <*> safeGet
+        4 -> do energy <- safeGet
+                p1pol  <- RH <$> safeGet 
+                p2pol  <- RH <$> safeGet
+                let ipol = InitPolarization p1pol p2pol 
+                detector <- safeGet 
+                return (PolParton energy ipol detector)
 
 instance SafeCopy RGRunType where
   putCopy Fixed = contain (safePut (0 :: Int)) 
