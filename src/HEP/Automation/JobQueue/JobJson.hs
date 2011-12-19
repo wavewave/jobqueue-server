@@ -38,7 +38,9 @@ import Data.Aeson.Parser
 
 import qualified Data.ByteString as S
 import qualified Data.Vector as V
-import qualified Data.Map as M
+-- import qualified Data.Map as M
+
+import qualified  Data.HashMap.Strict as M
 
 import HEP.Automation.JobQueue.JobType
 import HEP.Automation.JobQueue.JobQueue
