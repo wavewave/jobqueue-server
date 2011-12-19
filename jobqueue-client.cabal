@@ -1,5 +1,5 @@
 Name:		jobqueue-client
-Version:	0.1.4
+Version:	0.1.4.0
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
@@ -13,10 +13,20 @@ Cabal-Version:  >= 1.2
 Executable jobclient 
   Main-is: jobclient.hs
   hs-source-dirs: src
-  Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
-               jobqueue-common, parsec, pipeline, 
-               http-types, http-enumerator > 0.6, 
-               madgraph-auto, bytestring, aeson-native, cmdargs
+  Build-Depends: base>4, 
+                 containers, 
+                 mtl == 2.*, 
+                 safecopy>0.5, 
+                 acid-state == 0.4.*, 
+                 jobqueue-common, 
+                 parsec, 
+                 pipeline, 
+                 http-types, 
+                 http-enumerator > 0.6, 
+                 madgraph-auto, 
+                 bytestring == 0.9.*, 
+                 aeson == 0.4.*, 
+                 cmdargs == 0.9.*
 
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
@@ -32,11 +42,24 @@ Library
   hs-source-dirs: src
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
-  Build-Depends: base>4, containers, mtl>2, safecopy>0.5, acid-state>0.4, 
-               jobqueue-common, parsec, pipeline, 
-               http-types, http-enumerator > 0.6, 
-               madgraph-auto, bytestring, aeson-native, cmdargs, 
-               webdav-manager, filepath, hslogger
+  Build-Depends: base>4, 
+                 containers, 
+                 mtl>2, 
+                 safecopy>0.5, 
+                 acid-state == 0.4.*, 
+                 jobqueue-common, 
+                 attoparsec == 0.10.*,
+                 parsec, 
+                 pipeline, 
+                 http-types == 0.6.*, 
+                 http-enumerator == 0.7.*, 
+                 madgraph-auto, 
+                 bytestring,  
+                 aeson == 0.4.* , 
+                 cmdargs == 0.9.* , 
+                 webdav-manager, 
+                 filepath, 
+                 hslogger == 1.1.*
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Client.Type 
                    HEP.Automation.JobQueue.Client.Job

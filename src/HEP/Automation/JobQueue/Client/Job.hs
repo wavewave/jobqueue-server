@@ -17,8 +17,11 @@ import HEP.Automation.JobQueue.JobJson
 
 import HEP.Storage.WebDAV.Type
 
+-- import Data.Aeson.Generic hiding (encode)
 import Data.Aeson.Types
 import Data.Aeson.Encode
+import Data.Aeson.Parser
+import Data.Attoparsec as P
 
 type Url = String 
 
@@ -169,7 +172,10 @@ getJsonFromServer url api = do
         } 
     r <- httpLbs requestgetjson manager 
     if statusCode r == 200 
-      then return . parseJson . SC.concat . C.toChunks . responseBody $ r
+      then do let parseresult = P.parse value . SC.concat . C.toChunks . responseBody $ r
+              case parseresult of
+                Done _ v -> return (Just v)
+                _ -> return Nothing 
       else return Nothing
 
 
