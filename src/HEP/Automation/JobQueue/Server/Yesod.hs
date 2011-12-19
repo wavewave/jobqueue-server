@@ -42,7 +42,7 @@ import HEP.Automation.JobQueue.JobJson
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config
 
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as M
 import Data.List 
 
 import Data.Acid 
