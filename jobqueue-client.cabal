@@ -26,16 +26,12 @@ Executable jobclient
                  madgraph-auto, 
                  bytestring == 0.9.*, 
                  aeson == 0.4.*, 
-                 cmdargs == 0.9.*
+                 cmdargs == 0.9.*, 
+                 jobqueue-client
 
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
 
-Executable modelinstaller
-  Main-is: modelinstaller.hs
-  hs-source-dirs: src
-  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
-  ghc-prof-options: -caf-all -auto-all
 
 
 Library
