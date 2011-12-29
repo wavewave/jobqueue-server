@@ -1,5 +1,5 @@
 Name:		jobqueue-server
-Version:	0.1.1.999
+Version:	0.1.2
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
@@ -19,7 +19,7 @@ Executable jobqueueserver
                  enumerator, wai-extra, wai, 
                  aeson == 0.4.*,
                  containers,
-                 acid-state, 
+                 acid-state == 0.4.*, 
                  attoparsec == 0.10.*, 
                  jobqueue-server
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
