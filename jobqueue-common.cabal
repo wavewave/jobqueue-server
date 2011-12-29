@@ -1,5 +1,5 @@
 Name:		jobqueue-common
-Version:	0.1.3.999
+Version:	0.1.4
 Synopsis:	common library for job scheduler for event generation 
 Description: 	common library job scheduler for event generation
 License: 	BSD3
@@ -16,7 +16,7 @@ Library
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: base == 4.*, containers, 
                  mtl == 2.*, 
-                 safecopy > 0.5, 
+                 safecopy == 0.5.*, 
                  acid-state == 0.4.*, madgraph-auto >= 0.6, 
                  madgraph-auto-model >= 0.2.999, 
                  cereal >= 0.3.1.0, 
