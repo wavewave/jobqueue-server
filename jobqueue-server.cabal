@@ -57,7 +57,9 @@ Library
                  madgraph-auto, 
                  jobqueue-common >= 0.1.3.999,
                  configparser, parsec, 
-                 webdav-manager >= 0.0.4, transformers, 
+                 webdav-manager >= 0.0.4,
+                 enumerator == 0.4.*, 
+                 transformers, 
                  unordered-containers == 0.1.*,
                  yesod == 0.9.*, 
                  wai == 0.4.*
