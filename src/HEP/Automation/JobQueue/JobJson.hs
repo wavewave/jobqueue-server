@@ -2,6 +2,17 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances,
              UndecidableInstances, ScopedTypeVariables #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      : HEP.Automation.JobQueue.JobJson 
+-- Copyright   : (c) 2011, 2012 Ian-Woo Kim
+--
+-- License     : BSD3
+-- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
+-- Stability   : experimental
+-- Portability : GHC
+--
+
 -----------------------------------------------------
 --
 -- Module       : HEP.Automation.JobQueue.JobJson
