@@ -27,10 +27,9 @@ Executable jobclient
                  http-enumerator > 0.6, 
                  madgraph-auto, 
                  bytestring == 0.9.*, 
-                 aeson == 0.4.*, 
+                 aeson == 0.5.*, 
                  cmdargs == 0.9.*, 
                  jobqueue-client
---                 acid-state == 0.4.*, 
 
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
@@ -55,7 +54,7 @@ Library
                  http-enumerator == 0.7.*, 
                  madgraph-auto, 
                  bytestring,  
-                 aeson == 0.4.* , 
+                 aeson == 0.5.* , 
                  cmdargs == 0.9.* , 
                  webdav-manager, 
                  filepath, 
