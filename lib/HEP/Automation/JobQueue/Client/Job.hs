@@ -32,15 +32,15 @@ jobqueueGet url jid = do
   putStrLn $ show r
   case r of 
     Nothing -> return (Left "jobqueueGet got Nothing")
-    Just x  -> case fromAeson x of 
-                 Nothing -> return (Left "fromAeson in jobqueueGet error")
-                 Just e  -> return e
+    Just x  -> either error return (fromAeson x)
+--                  Nothing -> return (Left "fromAeson in jobqueueGet error")
+--                 Just e  -> return e
   
 
 jobqueuePut :: Url -> JobInfo -> IO (Maybe JobInfo)
 jobqueuePut url jinfo = do 
   putStrLn "put" 
-  withManager $ \manager -> do -- <- newManager 
+  withManager $ \manager -> do
     requesttemp <- parseUrl (url </> "job" 
                                  </> show (jobinfo_id jinfo))
     let myrequestbody = RequestBodyLBS . encode . toAeson $ jinfo
@@ -57,7 +57,7 @@ jobqueuePut url jinfo = do
 jobqueueDelete :: Url -> Int -> IO ()
 jobqueueDelete url jid = do 
   putStrLn "delete" 
-  withManager $ \manager -> do -- <- newManager 
+  withManager $ \manager -> do
     requesttemp <- parseUrl (url </> "job" </> show jid )
     let requestdel = requesttemp { 
                        method = methodDelete, 
@@ -70,7 +70,7 @@ jobqueueDelete url jid = do
 jobqueueList :: Url -> IO () 
 jobqueueList url = do 
   putStrLn "list"
-  withManager $ \manager -> do -- <- newManager 
+  withManager $ \manager -> do
     requestget <- parseUrl (url </> "queuelist")
     let requestgetjson = requestget { 
           requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
@@ -82,36 +82,37 @@ jobqueueUnassigned :: Url -> IO ()
 jobqueueUnassigned url = do 
   putStrLn "jobs unassigned:"
   r <- getJsonFromServer url "queuelist/unassigned"
-  let (result :: Maybe [JobInfo]) = fromAeson =<< r 
-  case result of 
-    Just jinfos -> forM_ jinfos $ 
-                    \x-> do {putStrLn "-------------" ; putStrLn (show x)}
-    Nothing     -> do putStrLn "Parsing failed"
+  let (result :: Either String [JobInfo]) = 
+        maybe (Left "error in jobqueueUnassigned") fromAeson r 
+  return result >>= (either putStrLn $ \jinfos -> 
+                       forM_ jinfos $ \x-> do 
+                         {putStrLn "-------------" ; putStrLn (show x)})
+
 
 jobqueueInprogress :: Url -> IO ()
 jobqueueInprogress url = do 
   putStrLn "jobs in progress:"
   r <- getJsonFromServer url "queuelist/inprogress"
-  let (result :: Maybe [JobInfo]) = fromAeson =<< r 
-  case result of 
-    Just jinfos -> forM_ jinfos $ 
-                    \x-> do {putStrLn "-------------" ; putStrLn (show x)}
-    Nothing     -> do putStrLn "Parsing failed"
+  let (result :: Either String [JobInfo]) =
+        maybe (Left "err in jobqueueInprogress") fromAeson r 
+  return result >>= (either putStrLn $ \jinfos ->
+                       forM_ jinfos $ \x-> do 
+                         {putStrLn "-------------" ; putStrLn (show x)})
 
 jobqueueFinished :: Url -> IO ()
 jobqueueFinished url = do 
   putStrLn "jobs finished:"
   r <- getJsonFromServer url "queuelist/finished"
-  let (result :: Maybe [JobInfo]) = fromAeson =<< r 
-  case result of 
-    Just jinfos -> forM_ jinfos $ 
-                    \x-> do {putStrLn "-------------" ; putStrLn (show x)}
-    Nothing     -> do putStrLn "Parsing failed"
+  let (result :: Either String [JobInfo]) = 
+        maybe (Left "err in jobqueueFinished") fromAeson r 
+  return result >>= (either putStrLn $ \jinfos -> 
+                      forM_ jinfos $ \x-> do 
+                        {putStrLn "-------------" ; putStrLn (show x)})
 
 jobqueueAssign :: Url -> ClientConfiguration -> IO (Maybe JobInfo) 
 jobqueueAssign url cc = do 
   putStrLn $ "Assign request of job "
-  withManager $ \manager -> do -- <- newManager 
+  withManager $ \manager -> do
     requesttemp <- parseUrl (url </> "assign")
     let ccjson = encode $ toAeson cc
         myrequestbody = RequestBodyLBS ccjson 
@@ -121,15 +122,21 @@ jobqueueAssign url cc = do
                                          , ("Accept", "application/json; charset=utf-8")], 
                         requestBody = myrequestbody } 
     r <- httpLbs requestpost manager 
-    let result = ( parseJson  . SC.concat . C.toChunks .  responseBody ) r :: Maybe (Either String JobInfo) 
-    case result of 
+    let result = ( parseJson  . SC.concat . C.toChunks .  responseBody ) r :: Either String (Either String JobInfo) 
+    return result >>= 
+               (either (\x -> do {putStrLn ("parsing failed : " ++ x); return Nothing})
+                       (either (\x-> do {putStrLn ("error msg from server : " ++ x) ; return Nothing })
+                              (return . Just) ))
+
+{-
+either case result of 
       Just (Right jinfo) -> do return (Just jinfo)  
 
       Just (Left msg)    -> do putStrLn "Error message from server" 
                                putStrLn msg
                                return Nothing
       Nothing            -> do putStrLn "Parsing failed"
-                               return Nothing 
+                               return Nothing  -}
 
 confirmAssignment :: Url -> String -> JobInfo -> IO (Maybe JobInfo)
 confirmAssignment url cname jinfo = do  
@@ -159,8 +166,9 @@ getWebDAVInfo url = do
   case r of 
     Nothing -> return Nothing
     Just value -> do 
-      let c = fromAeson value :: Maybe WebDAVServer
-      return c
+      let c = fromAeson value :: Either String WebDAVServer
+      either (const (return Nothing)) (return.Just) c
+
 
 
 getJsonFromServer :: Url -> String -> IO (Maybe Value)
