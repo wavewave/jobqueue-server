@@ -92,9 +92,10 @@ postQueueManyR =do
   _ <- getRequest
   bs' <- lift EL.consume
   let bs = S.concat bs' 
-  let parsed = (parseJson bs :: Maybe ManyJobInfo)
+  let parsed = (parseJson bs :: Either String ManyJobInfo)
   case parsed of 
-    Just idjinfos -> do 
+    Left str -> makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toAeson str)
+    Right idjinfos -> do  
       let uploadjob :: (Int,JobInfo) -> Handler (Int,Int)
           uploadjob (i,jinfo) = do 
             let priority = jobinfo_priority jinfo
@@ -125,15 +126,8 @@ postQueueManyR =do
 |] 
 
           makeRepHtmlJsonFromHamletJson hlet $ toAeson ("Success" :: String)
---          defaultLayoutJson rhtml rjon 
---          return (RepHtmlJson htmlrep jsonrep)
         Nothing -> do 
           makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toAeson ("Failed" :: String))
-    Nothing -> do 
-      liftIO $ do 
-        putStrLn $ "result not parsed well : " 
-        S.putStrLn bs
-      makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
 
 
 getHomeR :: Handler RepHtml 
@@ -192,7 +186,7 @@ getJobR n = do
           case (jobdetail_evset jdet) of 
             EventSet ps rs -> do 
               let wname = makeRunName ps rs  
-                  titlestr = "Job " ++ show n ++ " detail"  -- setTitle () 
+                  titlestr = "Job " ++ show n ++ " detail"  
               [hamlet| 
                  <html> 
                    <head> 
@@ -215,42 +209,34 @@ putJobR n = do
   liftIO $ putStrLn "putJobR called"
   JobQueueServer acid _ <- getYesod 
   _ <- getRequest
-  -- let wr = reqWaiRequest r 
   bs' <- lift EL.consume
   let bs = S.concat bs' 
-  let parsed = (parseJson bs :: Maybe JobInfo)
+  let parsed = (parseJson bs :: Either String JobInfo)
   case parsed of 
-    Just result -> do 
+    Left str -> makeRepHtmlJsonFromHamletJson [hamlet| this is not html |] (toAeson ("Fail" :: String))
+    Right result -> do 
       liftIO $ do 
         putStrLn $ SC.unpack bs
         putStrLn $ show result
         update acid (UpdateJob n result) >>= print  
       makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toAeson ("Success" :: String))
-    Nothing -> do
-      liftIO $ do 
-        putStrLn $ "result not parsed well : " 
-        putStrLn $ SC.unpack bs
-      makeRepHtmlJsonFromHamletJson [hamlet| this is not html |] (toAeson ("Fail" :: String))
 
 postQueueR :: Int -> Handler ()
 postQueueR prior = do 
   liftIO $ putStrLn "postQueueR called" 
   JobQueueServer acid _ <- getYesod  
   _ <- getRequest
-  -- let wr = reqWaiRequest r 
   bs' <- lift EL.consume
   let bs = S.concat bs' 
-  let parsed = (parseJson bs :: Maybe JobDetail)
+  let parsed = (parseJson bs :: Either String JobDetail)
   case parsed of 
-    Just result -> liftIO $ do 
+    Left str -> liftIO $ putStrLn $ "result not parsed well : " ++ str
+    Right result -> liftIO $ do 
                      putStrLn $ SC.unpack bs
                      putStrLn $ show result
                      if prior == 0 
                        then update acid (AddJob result) >>= print  
                        else update acid (AddJobWithPriority result Urgent) >>= print 
-    Nothing -> liftIO $ do 
-                 putStrLn $ "result not parsed well : " 
-                 putStrLn $ SC.unpack bs
 
 getQueueListR :: Handler RepHtmlJson
 getQueueListR = do 
@@ -306,8 +292,6 @@ hamletListJobs url str lst = do
       jobtype job = case jobinfo_detail job of 
                       EventGen _ _ -> "EventGen"
                       MathAnal _ _ _ -> "Mathematica"
-       
-  -- let remotedir = webdav_remotedir . jobdetail_remotedir . jobinfo_detail  
   let jobstatusshow :: JobInfo -> String 
       jobstatusshow job = case jobinfo_status job of 
                             Unassigned -> "Unassigned"
@@ -354,9 +338,10 @@ postAssignR = do
   _ <- getRequest
   bs' <- lift EL.consume
   let bs = S.concat bs' 
-  let parsed = (parseJson bs :: Maybe ClientConfiguration) 
+  let parsed = (parseJson bs :: Either String ClientConfiguration) 
   case parsed of 
-    Just cc -> do (_,listall) <- liftIO $ query acid QueryAll
+    Left str -> makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toAeson ("result not parsed well :" ++ str))
+    Right cc-> do (_,listall) <- liftIO $ query acid QueryAll
                   let priorcomp j1 j2 
                         | jobinfo_priority j1 > jobinfo_priority j2 = LT
                         | jobinfo_priority j1 == jobinfo_priority j2 =
@@ -366,10 +351,6 @@ postAssignR = do
                   let unassigned = filter (\x->jobinfo_status x == Unassigned) priorityordered 
                   let finished = filter (\x->case jobinfo_status x of {Finished _ -> True ; _ -> False }) priorityordered
                   firstJobAssignment cc (unassigned,finished)
-    Nothing -> do liftIO $ do 
-                    putStrLn $ "result not parsed well : " 
-                    S.putStrLn bs
-                  makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toAeson (Left "result not parsed well" :: Either String JobInfo))
 
 
 getConfigWebDAVR :: Handler RepHtmlJson 
@@ -379,7 +360,6 @@ getConfigWebDAVR = do
   liftIO $ putStrLn "getConfigWebDAVR called" 
   let url = webdav_server_url wdav 
   let configWebDAVhamlet = do 
---        setTitle "webdav server configuration"
         [hamlet|
 !!!
 <html>

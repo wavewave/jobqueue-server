@@ -11,7 +11,7 @@ import Yesod
 main :: IO ()
 main = do 
   putStrLn "jobqueueserver"
-  acid <- openAcidState (JobInfoQueue 0 M.empty) 
+  acid <- openLocalState (JobInfoQueue 0 M.empty) 
   sconf <- serverConfigParser "test.conf"
   warpDebug 3600 (JobQueueServer acid sconf) 
 

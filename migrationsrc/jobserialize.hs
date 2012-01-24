@@ -61,7 +61,7 @@ import qualified Data.ByteString.Lazy as L
 main :: IO ()
 main = do 
   putStrLn "job migration."
-  acid <- openAcidStateFrom "state/HEP.Automation.JobQueue.JobQueue.JobInfoQueue" (JobInfoQueue 0 M.empty) 
+  acid <- openAcidState (JobInfoQueue 0 M.empty) -- From "state/HEP.Automation.JobQueue.JobQueue.JobInfoQueue" (JobInfoQueue 0 M.empty) 
   (i,jinfos) <- query acid QueryAll  
   let bstr = (toLazyByteString . fromValue . toAeson)  $  jinfos
 
