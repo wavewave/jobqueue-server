@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances,
-             UndecidableInstances, ScopedTypeVariables #-}
+             UndecidableInstances, ScopedTypeVariables, ViewPatterns #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -12,17 +12,6 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
-
------------------------------------------------------
---
--- Module       : HEP.Automation.JobQueue.JobJson
--- Copyright    : Ian-Woo Kim
--- License      : BSD3
--- 
--- Maintainer   : Ian-Woo Kim <ianwookim@gmail.com>
--- Stability    : Experimental
--- Portability  : unknown 
--- 
 -- Types for a event gen job
 --
 ----------------------------------------------------
@@ -42,15 +31,11 @@ import HEP.Automation.MadGraph.ModelParser
 import HEP.Storage.WebDAV.Type
 
 import Data.Text hiding (map)
-import Data.Attoparsec 
-import Data.Attoparsec.Number 
+-- import Data.Attoparsec 
+-- import Data.Attoparsec.Number 
 import Data.Aeson.Types hiding (parse)
-import Data.Aeson.Parser 
-
-import qualified Data.ByteString as S
 import qualified Data.Vector as V
 -- import qualified Data.Map as M
-
 import qualified  Data.HashMap.Strict as M
 
 import HEP.Automation.JobQueue.JobType
@@ -60,34 +45,398 @@ import HEP.Automation.JobQueue.Config
 import Data.Data
 import qualified Data.Aeson.Generic as G
 
+-- | 
+
+atomize :: (Show a) => a -> Value 
+atomize = atomizeStr . show 
+
+-- | 
+
+atomizeStr :: String -> Value
+atomizeStr = String . pack
+
+-- |
+
+elookup :: Text -> M.HashMap Text Value -> Parser Value
+elookup k m = maybe (fail (unpack k ++ " not parsed")) 
+                    return 
+                    (M.lookup k m)
+
+-- | 
+
+lookupfunc :: (FromJSON a) => Text -> M.HashMap Text Value -> Parser a
+lookupfunc k m = elookup k m >>= parseJSON 
+
+-- | 
+
+instance (Data a) => FromJSON a where
+  parseJSON v = let r = G.fromJSON v 
+                in case r of 
+                     Success a -> return a 
+                     Error _str -> fail $ (show . typeOf) (undefined :: a) ++ " is not parsed"
+
+-- | 
+
+instance ToJSON MachineType where
+  toJSON TeVatron = object [ "Type" .= String "TeVatron" ]
+  toJSON (LHC7 detector) = object [ "Type" .= String "LHC7"
+                                  , "Detector" .= G.toJSON detector ]
+  toJSON (LHC14 detector)  = object [ "Type" .= String "LHC14" 
+                                    , "Detector" .= G.toJSON detector ]
+  toJSON (Parton energy detector) = object [ "Type" .= String "Parton"
+                                           , "Energy" .= toJSON energy 
+                                           , "Detector" .= G.toJSON detector ] 
+  toJSON (PolParton energy ipol detector) = 
+    let p1 = (rhpol_percent . particle1pol) ipol 
+        p2 = (rhpol_percent . particle2pol) ipol 
+    in  object [ "Type" .= String "Parton"
+               , "Energy" .= toJSON energy
+               , "Detector" .= G.toJSON detector
+               , "InitPol1" .= toJSON p1 
+               , "InitPol2" .= toJSON p2 ] 
+
+-- | 
+
+instance FromJSON MachineType where
+  parseJSON (Object m) = do
+    t <- elookup "Type" m
+    case t of 
+      String "TeVatron" -> return TeVatron 
+      String "LHC7"     -> LHC7 <$> lookupfunc "Detector" m 
+      String "LHC14"    -> LHC14 <$> lookupfunc "Detector" m
+      String "Parton"   -> do 
+        Parton <$> lookupfunc "Energy" m 
+               <*> lookupfunc "Detector" m
+      String "PolParton"   -> do 
+        energy   <- lookupfunc "Energy" m 
+        ipol1    <- lookupfunc "InitPol1" m 
+        ipol2    <- lookupfunc "InitPol2" m
+        detector <- lookupfunc "Detector" m
+        return (PolParton energy 
+                          (InitPolarization (RH ipol1) (RH ipol2)) 
+                          detector)
+      _ -> fail "MachineType not parsed"
+  parseJSON _ = fail "MachineType not parsed"
+
+-- |
+
+instance ToJSON MatchType where
+  toJSON NoMatch = "NoMatch"
+  toJSON MLM = "MLM"
+
+-- | 
+
+instance FromJSON MatchType where
+  parseJSON (String "NoMatch") = return NoMatch
+  parseJSON (String "MLM") = return MLM 
+  parseJSON _ = fail "MatchType Not Parsed"
+
+-- | 
+
+instance ToJSON RGRunType where
+  toJSON Fixed = "Fixed"
+  toJSON Auto  = "Auto"
+
+-- | 
+
+instance FromJSON RGRunType where
+  parseJSON (String "Fixed") = return Fixed
+  parseJSON (String "Auto") = return Auto
+  parseJSON _ = fail "RGRunType Not Parsed"
+
+-- | 
+
+instance ToJSON CutType where
+  toJSON NoCut  = "NoCut"
+  toJSON DefCut = "DefCut"
+  toJSON KCut   = "KCut"
+
+-- | 
+
+instance FromJSON CutType where
+  parseJSON (String "NoCut") = return NoCut
+  parseJSON (String "DefCut") = return DefCut 
+  parseJSON (String "KCut") = return KCut 
+  parseJSON _ = fail "CutType Not Parsed"
+
+-- | 
+
+instance ToJSON PYTHIAType where
+  toJSON NoPYTHIA =  "NoPYTHIA"
+  toJSON RunPYTHIA = "RunPYTHIA"
+
+-- | 
+
+instance FromJSON PYTHIAType where
+  parseJSON (String "NoPYTHIA") = return NoPYTHIA
+  parseJSON (String "RunPYTHIA") = return RunPYTHIA
+  parseJSON _ = fail "PYTHIAType not parsed"
+
+-- | 
+
+instance ToJSON UserCutSet where
+  toJSON NoUserCutDef = object [ "IsUserCutDefined" .= String "NoUserCutDef" ]
+  toJSON (UserCutDef uc) = object [ "IsUserCutDefined" .= String "UserCutDef"
+                                  , "CutDetail" .= toJSON uc ]
+
+-- | 
+
+instance FromJSON UserCutSet where
+  parseJSON (Object m) = do t <- elookup "IsUserCutDefined" m 
+                            case t of 
+                              String "NoUserCutDef" -> return NoUserCutDef
+                              String "UserCutDef" -> do 
+                                d <- elookup "CutDetail" m
+                                uc <- parseJSON d 
+                                return (UserCutDef uc)
+                              _ -> fail "UserCutSet not parsed"
+  parseJSON _ = fail "UserCutSet not parsed"
+
+-- | 
+
+instance ToJSON UserCut where
+  toJSON (UserCut met etacutlep etcutlep etacutjet etcutjet) 
+    = Array . V.fromList . map toJSON $ [met,etacutlep,etcutlep,etacutjet,etcutjet]
+
+-- | 
+
+instance FromJSON UserCut where
+  parseJSON (Array v) | V.length v == 5 = do
+    met       <- parseJSON (v V.! 0)
+    etacutlep <- parseJSON (v V.! 1)
+    etcutlep  <- parseJSON (v V.! 2)
+    etacutjet <- parseJSON (v V.! 3)
+    etcutjet  <- parseJSON (v V.! 4) 
+    return (UserCut met etacutlep etcutlep etacutjet etcutjet)
+                      | otherwise = fail "UserCut not parsed"
+  parseJSON _ = fail "UserCut not parsed"
+ 
+-- | 
+
+instance ToJSON PGSType where
+  toJSON NoPGS  = "NoPGS"
+  toJSON RunPGS = "RunPGS"
+  toJSON RunPGSNoTau = "RunPGSNoTau"
+
+-- | 
+
+instance FromJSON PGSType where
+  parseJSON (String "NoPGS") = return NoPGS
+  parseJSON (String "RunPGS") = return RunPGS
+  parseJSON (String "RunPGSNoTau") = return RunPGSNoTau
+  parseJSON _ = fail "PGSType not parsed"
+
+-- | 
+
+instance ToJSON MadGraphVersion where
+  toJSON MadGraph4 = "MadGraph4"
+  toJSON MadGraph5 = "MadGraph5"
+
+-- | 
+
+instance FromJSON MadGraphVersion where
+  parseJSON (String "MadGraph4") = return MadGraph4
+  parseJSON (String "MadGraph5") = return MadGraph5
+  parseJSON _ = fail "MadGraphVersion not parsed"
+
+-- | 
+
+instance (Model a) => ToJSON (ModelParam a) where
+  toJSON p = let str = briefParamShow p  
+              in  String (pack str) 
+
+-- | 
+
+instance (Model a) => FromJSON (ModelParam a) where
+  parseJSON (String str) = return . interpreteParam . unpack $ str
+  parseJSON _ = fail "ModelParam not parsed"
+
+-- | 
+
+modelFromJSON :: (Model a) => Value -> Parser a 
+modelFromJSON (String str) = maybe (fail "modelFromJSON failed") return $ modelFromString . unpack $ str
+modelFromJSON _ = fail "modelFromJSON failed"
+
+-- |
+
+instance (Model a) => ToJSON (ProcessSetup a) where
+  toJSON p = object [ "model" .= ( atomizeStr . modelName . model $ p )
+                    , "process" .= ( atomizeStr . process $ p )
+                    , "processBrief" .= ( atomizeStr . processBrief $ p )
+                    , "workname" .= ( atomizeStr . workname $ p) ]
+
+-- | 
+
+instance (Model a) => FromJSON (ProcessSetup a) where
+  parseJSON (Object m) = PS <$> (elookup "model" m >>= modelFromJSON)
+                            <*> lookupfunc "process" m
+                            <*> lookupfunc "processBrief" m
+                            <*> lookupfunc "workname" m
+  parseJSON _ = fail "ProcessSetup not parsed"
+ 
+-- |
+
+instance (Model a) => ToJSON (RunSetup a) where
+  toJSON p = object [ "param" .= (toJSON . param $ p)
+                    , "numevent"  .= (toJSON . numevent $ p)
+                    , "machine"   .= (toJSON . machine $ p)
+                    , "rgrun"     .= (toJSON . rgrun $ p)
+                    , "rgscale"   .= (toJSON . rgscale $ p)
+                    , "match"     .= (toJSON . match $ p)
+                    , "cut"       .= (toJSON . cut $ p) 
+                    , "pythia"    .= (toJSON . pythia $ p)
+                    , "usercut"   .= (toJSON . usercut $ p)
+                    , "lhesanitizer" .= (G.toJSON . lhesanitizer $ p)
+                    , "pgs"       .= (toJSON . pgs $ p) 
+                    , "jetalgo"   .= (G.toJSON . jetalgo $ p)
+                    , "hep"       .= (G.toJSON . uploadhep $ p)
+                    , "setnum"    .= (toJSON . setnum $ p) ] 
+
+-- |
+
+instance (Model a) => FromJSON (RunSetup a) where
+  parseJSON (Object m) =   RS <$> lookupfunc "param" m   <*> lookupfunc "numevent" m
+                              <*> lookupfunc "machine" m <*> lookupfunc "rgrun" m
+                              <*> lookupfunc "rgscale" m <*> lookupfunc "match" m
+                              <*> lookupfunc "cut" m     <*> lookupfunc "pythia" m
+                              <*> lookupfunc "usercut" m <*> lookupfunc "lhesanitizer" m
+                              <*> lookupfunc "pgs" m     <*> lookupfunc "jetalgo" m
+                              <*> lookupfunc "hep" m     <*> lookupfunc "setnum" m
+  parseJSON _ = fail "RunSetup not parsed"
+
+-- | 
+
+instance ToJSON EventSet where
+  toJSON (EventSet p r) = object [ "psetup" .= toJSON p
+                                 , "rsetup" .= toJSON r ] 
+
+-- |
+
+instance FromJSON EventSet where
+  parseJSON (Object m) = do 
+    psobj <- elookup "psetup" m 
+    case psobj of 
+      Object ps -> do 
+        mdl <- elookup "model" ps
+        case mdl of 
+          String str -> do 
+            modelbox <- maybe (fail "model in EventSet failed") return $ modelParse (unpack str) 
+            mkEventSet modelbox   
+          _ -> fail "model in EventSet failed"
+      _ -> fail "psetup in EventSet failed"
+    where mkEventSet :: ModelBox -> Parser EventSet
+          mkEventSet (ModelBox mdl) = 
+               EventSet <$> getPSetup mdl <*> getRSetup mdl 
+          getPSetup :: (Model a) => a -> Parser (ProcessSetup a) 
+          getPSetup _mdl = lookupfunc "psetup" m
+          getRSetup :: (Model a) => a -> Parser (RunSetup a)
+          getRSetup _mdl = lookupfunc "rsetup" m
+  parseJSON _ = fail "EventSet not parsed"
+
+-- |
+
+instance ToJSON JobDetail where
+  toJSON (EventGen evset rdir) = object [ "JobType" .= String "EventGen" 
+                                        , "evset"   .= toJSON evset 
+                                        , "rdir"    .= toJSON rdir ]
+  toJSON (MathAnal mathanal evset rdir) = 
+    object [ "JobType"  .= String "MathAnal" 
+           , "mathanal" .= toJSON mathanal
+           , "evset"    .= toJSON evset
+           , "rdir"     .= toJSON rdir ]
+
+-- |
+
+instance FromJSON JobDetail where
+  parseJSON (Object m) = do
+    t <- elookup "JobType" m 
+    case t of 
+      String "EventGen" -> EventGen <$> (elookup "evset" m >>= parseJSON) 
+                                    <*> (elookup "rdir" m >>= parseJSON)
+      String "MathAnal" -> MathAnal <$> lookupfunc "mathanal" m 
+                                    <*> (elookup "evset" m >>= parseJSON)
+                                    <*> (elookup "rdir" m >>= parseJSON)
+      _ -> fail "JobType in JobDetail failed" 
+  parseJSON _ = fail "JobDetail not parsed"
+
+-- | 
+
+instance ToJSON WebDAVRemoteDir where
+  toJSON (WebDAVRemoteDir rdir) = toJSON rdir 
+
+-- |
+
+instance FromJSON WebDAVRemoteDir where
+  parseJSON v = WebDAVRemoteDir <$> parseJSON v
+
+-- | 
+   
+instance ToJSON JobInfo where
+  toJSON i = object [ "id"         .= (toJSON . jobinfo_id $ i)
+                    , "detail"     .= (toJSON . jobinfo_detail $ i)
+                    , "status"     .= (G.toJSON . jobinfo_status $ i) 
+                    , "priority"   .= (G.toJSON . jobinfo_priority $ i) 
+                    , "dependency" .= (toJSON . jobinfo_dependency $ i) ]
+
+-- |
+
+instance FromJSON JobInfo where
+  parseJSON (Object m) = 
+    JobInfo <$> lookupfunc "id" m
+            <*> lookupfunc "detail" m
+            <*> lookupfunc "status" m
+            <*> lookupfunc "priority" m
+            <*> lookupfunc "dependency" m 
+  parseJSON _ = fail "JobInfo not parsed"
+    
+-- |
+     
+instance ToJSON ClientConfiguration where
+  toJSON (ClientConfiguration computer math pbs montecarlo datasetdir) = 
+      object [ "computer"    .= toJSON computer 
+             , "mathematica" .= toJSON math
+             , "pbs"         .= toJSON pbs   
+             , "montecarlo"  .= toJSON montecarlo 
+             , "datasetDir"  .= toJSON datasetdir ] 
+
+-- |
+
+instance FromJSON ClientConfiguration where
+  parseJSON (Object m) = 
+    ClientConfiguration 
+      <$> lookupfunc "computer" m
+      <*> lookupfunc "mathematica" m 
+      <*> lookupfunc "pbs" m
+      <*> lookupfunc "montecarlo" m
+      <*> lookupfunc "datasetDir" m
+  parseJSON _ = fail "ClientConfiguration not parsed"
+
+
+
 
 --import Control.Applicative
 
+{- 
 class ToAeson a where 
   toAeson :: a -> Value
 
 class FromAeson a where
   fromAeson :: Value -> Either String a -- Maybe a
+-}
 
 
-atomize :: (Show a) => a -> Value 
-atomize = atomizeStr . show 
-
-atomizeStr :: String -> Value
-atomizeStr = String . pack
-
-elookup :: Text -> M.HashMap Text Value -> Either String Value
-elookup txt m = maybe (Left (unpack txt ++ " not parsed")) Right (M.lookup txt m)
-
+{-
 instance (Data a) => ToAeson a where
   toAeson = G.toJSON
 
 instance (Data a) => FromAeson a where
-  fromAeson v = let r = G.fromJSON v 
+  fromAeson v = let r = G.parseJSON v 
                 in case r of 
                      Success a -> return a 
                      Error _str -> Left $ (show . typeOf) (undefined :: a) ++ " is not parsed" -- Nothing  
+-}
 
+{-
 instance ToAeson Bool where
   toAeson = Bool 
 
@@ -124,7 +473,7 @@ instance FromAeson String where
 
 instance ToAeson String where
   toAeson = atomizeStr  
-
+ 
 instance (ToAeson a, ToAeson b) => ToAeson (Either a b) where
   toAeson (Left a) = Object $ 
                         M.fromList [ ("Type", "Left")
@@ -140,321 +489,29 @@ instance (FromAeson a, FromAeson b) => FromAeson (Either a b) where
                               "Right" -> Right <$> (elookup "Content" m >>= fromAeson)
                               _ -> Left "Either not parsed" 
   fromAeson _ = Left "Either not parsed"
-
-instance ToAeson MachineType where
-  toAeson TeVatron = Object (M.singleton "Type" (String "TeVatron"))
-  toAeson (LHC7 detector) = Object (M.fromList [ ("Type", (String "LHC7"))
-                                               , ("Detector", toAeson detector)])
-  toAeson (LHC14 detector)  = Object (M.fromList [ ("Type", (String "LHC14"))
-                                                 , ("Detector", toAeson detector)])
-  toAeson (Parton energy detector) = Object (M.fromList 
-                                              [ ("Type",String "Parton")
-                                              , ("Energy",Number (D energy))
-                                              , ("Detector", toAeson detector)]) 
-  toAeson (PolParton energy ipol detector) = 
-    let p1 = (rhpol_percent . particle1pol) ipol 
-        p2 = (rhpol_percent . particle2pol) ipol 
-    in  Object (M.fromList 
-                  [ ("Type",String "Parton")
-                  , ("Energy",Number (D energy))
-                  , ("Detector", toAeson detector)
-                  , ("InitPol1", Number (D p1)) 
-                  , ("InitPol2", Number (D p2))
-                  ]) 
+-}
 
 
-instance FromAeson MachineType where
-  fromAeson (Object m) = do 
-    t <- elookup "Type" m
-    case t of 
-      String "TeVatron" -> return TeVatron 
-      String "LHC7"     -> LHC7 <$> lookupfunc "Detector"
-      String "LHC14"    -> LHC14 <$> lookupfunc "Detector"
-      String "Parton"   -> do 
-        Parton <$> lookupfunc "Energy" 
-               <*> lookupfunc "Detector"
-      String "PolParton"   -> do 
-        energy   <- lookupfunc "Energy" 
-        ipol1    <- lookupfunc "InitPol1"
-        ipol2    <- lookupfunc "InitPol2"
-        detector <- lookupfunc "Detector"
-        return (PolParton energy 
-                          (InitPolarization (RH ipol1) (RH ipol2)) 
-                          detector)
-      _ -> Left "MachineType not parsed"
-    where lookupfunc str = elookup str m >>= fromAeson 
-  fromAeson _ = Left "MachineType not parsed"
-
-instance ToAeson MatchType where
-  toAeson NoMatch = String "NoMatch"
-  toAeson MLM = String "MLM"
-
-
-instance FromAeson MatchType where
-  fromAeson (String "NoMatch") = return NoMatch
-  fromAeson (String "MLM") = return MLM 
-  fromAeson _ = Left "MatchType Not Parsed"
-
-instance ToAeson RGRunType where
-  toAeson Fixed = String "Fixed"
-  toAeson Auto  = String "Auto"
-
-instance FromAeson RGRunType where
-  fromAeson (String "Fixed") = return Fixed
-  fromAeson (String "Auto") = return Auto
-  fromAeson _ = Left "RGRunType Not Parsed"
-
-instance ToAeson CutType where
-  toAeson NoCut  = String "NoCut"
-  toAeson DefCut = String "DefCut"
-  toAeson KCut   = String "KCut"
-
-instance FromAeson CutType where
-  fromAeson (String "NoCut") = return NoCut
-  fromAeson (String "DefCut") = return DefCut 
-  fromAeson (String "KCut") = return KCut 
-  fromAeson _ = Left "CutType Not Parsed"
-
-instance ToAeson PYTHIAType where
-  toAeson NoPYTHIA = String "NoPYTHIA"
-  toAeson RunPYTHIA = String "RunPYTHIA"
-
-instance FromAeson PYTHIAType where
-  fromAeson (String "NoPYTHIA") = return NoPYTHIA
-  fromAeson (String "RunPYTHIA") = return RunPYTHIA
-  fromAeson _ = Left "PYTHIAType not parsed"
-
-instance ToAeson UserCutSet where
-  toAeson NoUserCutDef = Object (M.singleton "IsUserCutDefined" (String "NoUserCutDef"))
-  toAeson (UserCutDef uc) = Object (M.fromList
-                                     [ ("IsUserCutDefined", (String "UserCutDef"))
-                                     , ("CutDetail", toAeson uc) ] )
-
-instance FromAeson UserCutSet where
-  fromAeson (Object m) = do t <- elookup "IsUserCutDefined" m 
-                            case t of 
-                              String "NoUserCutDef" -> return NoUserCutDef
-                              String "UserCutDef" -> do 
-                                d <- elookup "CutDetail" m
-                                uc <- fromAeson d 
-                                return (UserCutDef uc)
-                              _ -> Left "UserCutSet not parsed"
-  fromAeson _ = Left "UserCutSet not parsed"
-
-
-instance ToAeson UserCut where
-  toAeson (UserCut met etacutlep etcutlep etacutjet etcutjet) 
-    = Array . V.fromList . map (Number . D) $ [met,etacutlep,etcutlep,etacutjet,etcutjet]
-
-instance FromAeson UserCut where
-  fromAeson (Array v) | V.length v == 5 = do
-    met       <- fromAeson (v V.! 0)
-    etacutlep <- fromAeson (v V.! 1)
-    etcutlep  <- fromAeson (v V.! 2)
-    etacutjet <- fromAeson (v V.! 3)
-    etcutjet  <- fromAeson (v V.! 4) 
-    return (UserCut met etacutlep etcutlep etacutjet etcutjet)
-                      | otherwise = Left "UserCut not parsed"
-  fromAeson _ = Left "UserCut not parsed"
- 
-
-instance ToAeson PGSType where
-  toAeson NoPGS  = String "NoPGS"
-  toAeson RunPGS = String "RunPGS"
-  toAeson RunPGSNoTau = String "RunPGSNoTau"
-
-instance FromAeson PGSType where
-  fromAeson (String "NoPGS") = return NoPGS
-  fromAeson (String "RunPGS") = return RunPGS
-  fromAeson (String "RunPGSNoTau") = return RunPGSNoTau
-  fromAeson _ = Left "PGSType not parsed"
-
-
-instance ToAeson MadGraphVersion where
-  toAeson MadGraph4 = String "MadGraph4"
-  toAeson MadGraph5 = String "MadGraph5"
-
-instance FromAeson MadGraphVersion where
-  fromAeson (String "MadGraph4") = return MadGraph4
-  fromAeson (String "MadGraph5") = return MadGraph5
-  fromAeson _ = Left "MadGraphVersion not parsed"
-
-instance (Model a) => ToAeson (ModelParam a) where
-  toAeson p = let str = briefParamShow p  
-              in  String (pack str) 
-
-instance (Model a) => FromAeson (ModelParam a) where
-  fromAeson (String str) = return . interpreteParam . unpack $ str
-  fromAeson _ = Left "ModelParam not parsed"
-
-modelFromAeson :: (Model a) => Value -> Either String a 
-modelFromAeson (String str) = maybe (Left "modelFromAeson failed") Right $ modelFromString . unpack $ str
-modelFromAeson _ = Left "modelFromAeson failed"
-
-
-instance (Model a) => ToAeson (ProcessSetup a) where
-  toAeson p = Object 
-              $ M.fromList 
-                    [ ("model"       , atomizeStr . modelName . model $ p)
-                    , ("process"     , atomizeStr . process $ p)
-                    , ("processBrief", atomizeStr . processBrief $ p)
-                    , ("workname"    , atomizeStr . workname $ p) ]
-
-instance (Model a) => FromAeson (ProcessSetup a) where
-  fromAeson (Object m) = PS <$> (elookup "model" m >>= modelFromAeson)
-                            <*> lookupfunc "process" 
-                            <*> lookupfunc "processBrief" 
-                            <*> lookupfunc "workname" 
-    where lookupfunc str = elookup str m >>= fromAeson  
-  fromAeson _ = Left "ProcessSetup not parsed"
- 
-
-
-instance (Model a) => ToAeson (RunSetup a) where
-  toAeson p = Object 
-              $ M.fromList 
-                    [ ("param"    , toAeson . param $ p)
-                    , ("numevent" , Number . I . fromIntegral . numevent $ p)
-                    , ("machine"  , toAeson . machine $ p)
-                    , ("rgrun"    , toAeson . rgrun $ p)
-                    , ("rgscale"  , Number . D . rgscale $ p)
-                    , ("match"    , toAeson . match $ p)
-                    , ("cut"      , toAeson . cut $ p) 
-                    , ("pythia"   , toAeson . pythia $ p)
-                    , ("usercut"  , toAeson . usercut $ p)
-                    , ("lhesanitizer", toAeson . lhesanitizer $ p)
-                    , ("pgs"      , toAeson . pgs $ p) 
-                    , ("jetalgo"  , toAeson . jetalgo $ p)
-                    , ("hep"      , toAeson . uploadhep $ p )
-                    , ("setnum"   , Number . I . fromIntegral . setnum $ p)] 
-
-instance (Model a) => FromAeson (RunSetup a) where
-  fromAeson (Object m) =   RS <$> lookupfunc "param"   <*> lookupfunc "numevent" 
-                              <*> lookupfunc "machine" <*> lookupfunc "rgrun" 
-                              <*> lookupfunc "rgscale" <*> lookupfunc "match"
-                              <*> lookupfunc "cut"     <*> lookupfunc "pythia"  
-                              <*> lookupfunc "usercut" <*> lookupfunc "lhesanitizer"
-                              <*> lookupfunc "pgs"     <*> lookupfunc "jetalgo" 
-                              <*> lookupfunc "hep"     <*> lookupfunc "setnum"
-    where lookupfunc str = elookup str m >>= fromAeson  
-  fromAeson _ = Left "RunSetup not parsed"
-
-instance ToAeson EventSet where
-  toAeson (EventSet p r) = Object 
-                 $ M.fromList 
-                       [ ( "psetup" , toAeson p) 
-                       , ( "rsetup" , toAeson r) ] 
-
-instance FromAeson EventSet where
-  fromAeson (Object m) = do 
-    psobj <- elookup "psetup" m 
-    case psobj of 
-      Object ps -> do 
-        mdl <- elookup "model" ps
-        case mdl of 
-          String str -> do 
-            modelbox <- maybe (Left "model in EventSet failed") Right $ modelParse (unpack str) 
-            mkEventSet modelbox   
-          _ -> Left "model in EventSet failed"
-      _ -> Left "psetup in EventSet failed"
-    where mkEventSet :: ModelBox -> Either String EventSet
-          mkEventSet (ModelBox mdl) = 
-               EventSet <$> getPSetup mdl <*> getRSetup mdl 
-          getPSetup :: (Model a) => a -> Either String (ProcessSetup a) 
-          getPSetup _mdl = lookupfunc "psetup" 
-          getRSetup :: (Model a) => a -> Either String (RunSetup a)
-          getRSetup _mdl = lookupfunc "rsetup"
-          lookupfunc str = elookup str m >>= fromAeson
-  fromAeson _ = Left "EventSet not parsed"
-
-
-instance ToAeson JobDetail where
-  toAeson (EventGen evset rdir) = Object $ 
-                               M.fromList [ ( "JobType",  String "EventGen" ) 
-                                          , ( "evset", toAeson evset) 
-                                          , ( "rdir",  toAeson rdir) ]
-  toAeson (MathAnal mathanal evset rdir) = 
-    Object $ M.fromList [ ( "JobType",  String "MathAnal" )
-                        , ( "mathanal", toAeson mathanal)
-                        , ( "evset", toAeson evset)
-                        , ( "rdir",  toAeson rdir) ]
-
-instance FromAeson JobDetail where
-  fromAeson (Object m) = do
-    t <- elookup "JobType" m 
-    case t of 
-      "EventGen" -> EventGen <$> (elookup "evset" m >>= fromAeson) 
-                             <*> (elookup "rdir" m >>= fromAeson)
-      "MathAnal" -> MathAnal <$> (elookup "mathanal" m >>= fromAeson)
-                             <*> (elookup "evset" m >>= fromAeson)
-                             <*> (elookup "rdir" m >>= fromAeson)
-      _ -> Left "JobType in JobDetail failed" 
-  fromAeson _ = Left "JobDetail not parsed"
-
-
-instance ToAeson WebDAVRemoteDir where
-  toAeson (WebDAVRemoteDir rdir) = toAeson rdir 
-
-instance FromAeson WebDAVRemoteDir where
-  fromAeson v = WebDAVRemoteDir <$> fromAeson v
-
-   
-instance ToAeson JobInfo where
-  toAeson i = Object $ 
-                M.fromList 
-                  [ ("id" , toAeson . jobinfo_id $ i)
-                  , ("detail", toAeson . jobinfo_detail $ i)
-                  , ("status", toAeson . jobinfo_status $ i) 
-                  , ("priority", toAeson . jobinfo_priority $ i) 
-                  , ("dependency", toAeson . jobinfo_dependency $ i )
-                  ]
-
-instance FromAeson JobInfo where
-  fromAeson (Object m) = 
-    JobInfo <$> lookupfunc "id" 
-            <*> lookupfunc "detail" 
-            <*> lookupfunc "status"  
-            <*> lookupfunc "priority"
-            <*> lookupfunc "dependency" 
-    where lookupfunc str = elookup str m >>= fromAeson  
-  fromAeson _ = Left "JobInfo not parsed"
-         
-instance ToAeson ClientConfiguration where
-  toAeson (ClientConfiguration computer math pbs montecarlo datasetdir) = 
-      Object $ M.fromList 
-                 [ ("computer", toAeson computer )
-                 , ("mathematica", Bool math)
-                 , ("pbs", Bool pbs )  
-                 , ("montecarlo", Bool montecarlo) 
-                 , ("datasetDir", toAeson datasetdir) ] 
-
-instance FromAeson ClientConfiguration where
-  fromAeson (Object m) = 
-    ClientConfiguration 
-      <$> lookupfunc "computer" 
-      <*> lookupfunc "mathematica" 
-      <*> lookupfunc "pbs" 
-      <*> lookupfunc "montecarlo"
-      <*> lookupfunc "datasetDir"
-    where lookupfunc str = elookup str m >>= fromAeson
-  fromAeson _ = Left "ClientConfiguration not parsed"
-
-instance (FromAeson a, FromAeson b) => FromAeson (a,b) where
-  fromAeson (Array vec) = let lst = V.toList vec
+{-
+instance (FromJSON a, FromJSON b) => FromJSON (a,b) where
+  parseJSON (Array vec) = let lst = V.toList vec
                           in  if Prelude.length lst == 2 
                               then let a = lst !! 0 
                                        b = lst !! 1 
-                                   in  (,) <$> fromAeson a <*> fromAeson b
-                              else Left "(,) not parsed"
-  fromAeson _ = Left "(,) not parsed"
+                                   in  (,) <$> parseJSON a <*> parseJSON b
+                              else fail "(,) not parsed"
+  parseJSON _ = fail "(,) not parsed"
 
-instance (ToAeson a, ToAeson b) => ToAeson (a,b) where
-  toAeson (a,b) = Array (V.fromList [toAeson a, toAeson b])
+instance (ToJSON a, ToJSON b) => ToJSON (a,b) where
+  toJSON (a,b) = Array (V.fromList [toJSON a, toAeson b])
+-}
 
 
+{- 
 parseJson :: (FromAeson a) => S.ByteString -> Either String a
 parseJson bs =
   let resultjson = parse json bs
   in case resultjson of 
        Done _ rjson -> fromAeson rjson
-       _            -> Left "parsing failed"
+       _            -> fail "parsing failed"
+-}
