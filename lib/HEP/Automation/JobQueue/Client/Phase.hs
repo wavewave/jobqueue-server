@@ -45,6 +45,7 @@ import HEP.Automation.JobQueue.Config
 -- import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Client.Job
 
+import Data.Aeson.Types 
 import Control.Monad
 
 startWaitPhase :: LocalConfiguration -> Int -> Int -> IO () 
@@ -82,8 +83,8 @@ startJobPhase lc jinfo n af = do
       putStrLn "job assigned well"
       r' <- getWebDAVInfo url
       case r' of 
-        Nothing -> startWaitPhase lc n af
-        Just sconf -> do 
+        Error err -> startWaitPhase lc n af
+        Success sconf -> do 
           let wc = WorkConfig lc sconf
               job = jobMatch jinfo
               back = backToUnassigned url jinfo >> startWaitPhase lc (n-1) af
@@ -115,11 +116,15 @@ startJobPhase lc jinfo n af = do
                           return ()
   startWaitPhase lc n af
 
+-- |
+
 startGetPhase :: LocalConfiguration -> Int -> IO () 
 startGetPhase lc jid = do
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   jobqueueGet url jid
   return ()   
+
+-- |
 
 startListPhase :: LocalConfiguration -> String -> IO () 
 startListPhase lc qtyp = do
@@ -131,42 +136,47 @@ startListPhase lc qtyp = do
     "finished"   -> jobqueueFinished url
     _ -> putStrLn "No such option"
 
+-- | 
+
 startRevertPhase :: LocalConfiguration -> Int -> IO () 
 startRevertPhase lc jid = do
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   j <- jobqueueGet url jid
   case j of 
-    Left errmsg -> do
+    Error errmsg -> do
       putStrLn "No such job!"
       putStrLn $ "error : " ++ errmsg
-    Right jobinfo -> do 
+    Success jobinfo -> do 
       putStrLn $ " job is " ++ show jobinfo
       backToUnassigned url jobinfo
       return ()
+
+-- |
 
 startFinishPhase :: LocalConfiguration -> Int -> IO () 
 startFinishPhase lc jid = do
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   j <- jobqueueGet url jid
   case j of 
-    Left errmsg -> do
+    Error errmsg -> do
       putStrLn "No such job!"
       putStrLn $ "error : " ++ errmsg
-    Right jobinfo -> do 
+    Success jobinfo -> do 
       putStrLn $ " job is " ++ show jobinfo
       makeFinished url jobinfo
       return ()
 
+-- | 
 
 startDeletePhase :: LocalConfiguration -> Int -> IO () 
 startDeletePhase lc jid = do
   let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   j <- jobqueueGet url jid
   case j of 
-    Left errmsg -> do
+    Error errmsg -> do
       putStrLn "No such job!"
       putStrLn $ "error : " ++ errmsg
-    Right jobinfo -> do 
+    Success jobinfo -> do 
       putStrLn $ " job is " ++ show jobinfo
       jobqueueDelete url jid
       return ()
@@ -204,8 +214,8 @@ startJobTestPhase lc jinfo n = do
       putStrLn "job assigned well"
       r' <- getWebDAVInfo url
       case r' of 
-        Nothing -> startWaitTestPhase lc n
-        Just sconf -> do 
+        Error str -> startWaitTestPhase lc n
+        Success sconf -> do 
           let wc = WorkConfig lc sconf
               -- job = jobMatch jinfo
               testjob = dummyTestJob

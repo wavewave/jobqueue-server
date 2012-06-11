@@ -1,5 +1,5 @@
 Name:		jobqueue-client
-Version:	0.1.4.1
+Version:	0.1.999
 Synopsis:	job scheduler for event generation 
 Description: 	job scheduler for event generation
 License: 	BSD3
@@ -19,15 +19,15 @@ Executable jobclient
                  safecopy == 0.6.*, 
                  acid-state == 0.6.*,
                  attoparsec == 0.10.*,
-                 jobqueue-common == 0.2.*, 
+                 jobqueue-common >= 0.2.999, 
                  hslogger == 1.1.*,
                  parsec, 
                  pipeline == 0.3.*, 
                  http-types, 
-                 http-enumerator > 0.6, 
+                 http-conduit == 1.4.*, 
                  madgraph-auto, 
                  bytestring == 0.9.*, 
-                 aeson == 0.5.*, 
+                 aeson == 0.6.*, 
                  cmdargs == 0.9.*, 
                  jobqueue-client
 
@@ -43,22 +43,23 @@ Library
   Build-Depends: base>4, 
                  containers, 
                  mtl>2, 
-                 safecopy>0.5, 
+                 safecopy == 0.6.*, 
                  acid-state == 0.6.*, 
                  hslogger == 1.1.*,
-                 jobqueue-common, 
+                 jobqueue-common >= 0.2.999 && < 0.4, 
                  attoparsec == 0.10.*,
                  parsec, 
                  pipeline, 
                  http-types == 0.6.*, 
-                 http-enumerator == 0.7.*, 
+                 http-conduit == 1.4.*, 
                  madgraph-auto, 
                  bytestring,  
-                 aeson == 0.5.* , 
+                 aeson == 0.6.* , 
                  cmdargs == 0.9.* , 
                  webdav-manager, 
                  filepath, 
-                 hslogger == 1.1.*
+                 hslogger == 1.1.*, 
+                 text == 0.11.*
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Client.Type 
                    HEP.Automation.JobQueue.Client.Job
