@@ -2,7 +2,8 @@
              TemplateHaskell, 
              TypeFamilies, 
              TypeSynonymInstances, 
-             OverloadedStrings  #-}
+             OverloadedStrings, 
+             FlexibleInstances #-}
 
 module Application.YesodCRUD.Type where
 
