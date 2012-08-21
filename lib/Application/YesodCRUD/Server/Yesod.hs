@@ -6,16 +6,21 @@
 
 module Application.YesodCRUD.Server.Yesod where 
 
-import Yesod hiding (update)
-import Network.Wai
-import qualified Data.Enumerator.List as EL
+import           Control.Applicative
+import           Data.Acid
+import           Data.Aeson as A
+import           Data.Attoparsec as P
 import qualified Data.ByteString as S
-import Application.YesodCRUD.Type
-import Data.Acid
-import Data.Attoparsec as P
-import Data.Aeson as A
-import Data.UUID
-import Application.YesodCRUD.Server.Type
+import           Data.Conduit 
+import qualified Data.Conduit.List as CL
+import           Data.UUID
+import           Network.Wai
+import           Yesod hiding (update)
+-- 
+import           Application.YesodCRUD.Type
+import           Application.YesodCRUD.Server.Type
+
+
 
 mkYesod "YesodcrudServer" [parseRoutes|
 / HomeR GET
@@ -25,7 +30,7 @@ mkYesod "YesodcrudServer" [parseRoutes|
 |]
 
 instance Yesod YesodcrudServer where
-  approot _ = ""
+  -- approot = ""
   maximumContentLength _ _ = 100000000
 
 {-instance RenderMessage YesodcrudServer FormMessage where
@@ -45,7 +50,7 @@ getHomeR = do
 |]
 
 
-defhlet :: GGWidget m Handler ()
+defhlet :: GWidget s m ()
 defhlet = [whamlet| <h1> HTML output not supported |]
 
 
@@ -61,9 +66,9 @@ getListYesodcrudR = do
 postUploadYesodcrudR :: Handler RepHtmlJson
 postUploadYesodcrudR = do 
   liftIO $ putStrLn "postQueueR called" 
-  acid <- return.server_acid =<< getYesod
-  _ <- getRequest
-  bs' <- lift EL.consume
+  acid <- server_acid <$> getYesod
+  wr <- reqWaiRequest <$> getRequest
+  bs' <- liftIO $ runResourceT (requestBody wr $$ CL.consume)
   let bs = S.concat bs' 
   let parsed = parse json bs 
   case parsed of 
@@ -108,9 +113,9 @@ getYesodcrudR idee = do
 putYesodcrudR :: UUID -> Handler RepHtmlJson
 putYesodcrudR idee = do 
   liftIO $ putStrLn "putYesodcrudR called"
-  acid <- return.server_acid =<< getYesod
-  _wr <- return.reqWaiRequest =<< getRequest
-  bs' <- lift EL.consume
+  acid <- server_acid <$> getYesod
+  wr <- reqWaiRequest <$> getRequest
+  bs' <- liftIO $ runResourceT (requestBody wr $$ CL.consume)
   let bs = S.concat bs'
   let parsed = parse json bs 
   liftIO $ print parsed 
