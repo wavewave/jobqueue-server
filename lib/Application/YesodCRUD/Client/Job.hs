@@ -11,8 +11,9 @@ import Data.Aeson.Encode as E
 import Data.Aeson.Parser
 import qualified Data.Attoparsec as A
 
-import Network.HTTP.Types hiding (statusCode)
-import Network.HTTP.Enumerator
+import Network.HTTP.Types -- hiding (statusCode)
+import Network.HTTP.Types.Status
+import Network.HTTP.Conduit
 
 import System.Directory 
 import System.FilePath
@@ -91,9 +92,9 @@ jsonFromServer url api mthd = do
           method = mthd,
           requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] } 
     r <- httpLbs requestjson manager 
-    if statusCode r == 200 
+    if statusCode (responseStatus r) == 200 
       then return . parseJson . SC.concat . C.toChunks . responseBody $ r
-      else return (Left $ "status code : " ++ show (statusCode r)) 
+      else return (Left $ "status code : " ++ show (statusCode (responseStatus r))) 
 
 yesodcrudToServer :: Url -> String -> Method -> YesodcrudInfo -> IO (Either String (Result Value))
 yesodcrudToServer url api mthd mi = do 
@@ -106,9 +107,9 @@ yesodcrudToServer url api mthd mi = do
           , requestHeaders = [ ("Accept", "application/json; charset=utf-8") ]
           , requestBody = myrequestbody } 
     r <- httpLbs requestjson manager 
-    if statusCode r == 200 
+    if statusCode (responseStatus r) == 200 
       then return . parseJson . SC.concat . C.toChunks . responseBody $ r
-      else return (Left $ "status code : " ++ show (statusCode r)) 
+      else return (Left $ "status code : " ++ show (statusCode (responseStatus r))) 
 
 parseJson :: (FromJSON a) => SC.ByteString -> Either String (Result a)
 parseJson bs =
