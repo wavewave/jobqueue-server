@@ -43,7 +43,7 @@ Library
                  text,
                  uuid,
                  wai-extra,
-                 wai,
+                 wai > 3,
                  yesod-core,
                  yesod-form,
                  yesod,
