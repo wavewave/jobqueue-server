@@ -7,11 +7,12 @@ import Data.Text.Encoding as E
 import Data.UUID
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString as B
-import Yesod.Dispatch
+-- import Yesod.Dispatch
 import Text.Blaze
 import Application.YesodCRUD.Type
 -- import Debug.Trace 
 import Data.Acid
+import Web.PathPieces
 
 instance PathPiece UUID where
   fromPathPiece = fromString . C.unpack . E.encodeUtf8
