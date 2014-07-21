@@ -20,12 +20,12 @@ Executable yesodcrud-server
                  acid-state, 
                  yesodcrud-type,
                  yesodcrud-server
-  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
+  ghc-options: 	-Wall -Werror -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind -fno-warn-orphans 
   ghc-prof-options: -caf-all -auto-all
 
 Library
   hs-source-dirs: lib
-  ghc-options: 	-Wall -funbox-strict-fields -fno-warn-unused-do-bind
+  ghc-options: 	-Wall -Werror -funbox-strict-fields -fno-warn-unused-do-bind -fno-warn-orphans
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: acid-state,
                  aeson,

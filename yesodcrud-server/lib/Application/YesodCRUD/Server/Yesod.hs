@@ -13,13 +13,13 @@ module Application.YesodCRUD.Server.Yesod where
 
 import           Control.Applicative
 import           Control.Monad.Loops
-import           Control.Monad.Trans.Resource
+-- import           Control.Monad.Trans.Resource
 import           Data.Acid
 import           Data.Aeson as A
-import           Data.Attoparsec as P
+import           Data.Attoparsec.ByteString as P
 import qualified Data.ByteString as S
-import           Data.Conduit 
-import qualified Data.Conduit.List as CL
+-- import           Data.Conduit 
+-- import qualified Data.Conduit.List as CL
 import           Data.UUID
 import           Network.Wai
 import           Yesod hiding (update)
@@ -72,7 +72,6 @@ postUploadYesodcrudR = do
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr      
                                return (if S.null bstr then Nothing else Just bstr)
-  liftIO $ print bs'
   let bs = S.concat bs' 
   let parsed = parse json bs 
   case parsed of 
@@ -120,7 +119,6 @@ putYesodcrudR idee = do
                                return (if S.null bstr then Nothing else Just bstr)
   let bs = S.concat bs' 
   let parsed = parse json bs 
-  liftIO $ print parsed 
   case parsed of 
     Done _ parsedjson -> do 
       case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 

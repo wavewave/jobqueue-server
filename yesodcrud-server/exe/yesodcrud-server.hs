@@ -12,4 +12,4 @@ main :: IO ()
 main = do 
   putStrLn "yesodcrud-server"
   acid <- openLocalState M.empty 
-  warpDebug 7800 (YesodcrudServer acid)
+  warp 7800 (YesodcrudServer acid)
