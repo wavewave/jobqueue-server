@@ -7,6 +7,7 @@
 module Application.YesodCRUD.Server.Yesod where 
 
 import           Control.Applicative
+import           Control.Monad.Loops
 import           Control.Monad.Trans.Resource
 import           Data.Acid
 import           Data.Aeson as A
@@ -69,11 +70,11 @@ postUploadYesodcrudR = do
   liftIO $ putStrLn "postQueueR called" 
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
-  bs' <- liftIO $ requestBody wr        -- BUGGY BUT FOR THE TIME BEING
-
+  bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr       -- BUGGY BUT FOR THE TIME BEING
+                               return (if S.null bstr then Just bstr else Nothing)
   -- $$ CL.consume
   -- runResourceT (requestBody wr $$ CL.consume)
-  let bs = bs' -- bs = S.concat bs'  for the time being
+  let bs = S.concat bs' --  for the time being
   let parsed = parse json bs 
   case parsed of 
     Done _ parsedjson -> do 
@@ -118,9 +119,10 @@ putYesodcrudR idee = do
   liftIO $ putStrLn "putYesodcrudR called"
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
-  bs' <- liftIO $ requestBody wr 
+  bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr 
+                               return (if S.null bstr then Just bstr else Nothing)
   -- liftIO $ runResourceT (requestBody wr $$ CL.consume)
-  let bs = bs' -- bs = S.concat bs' for the time being
+  let bs = S.concat bs' 
   let parsed = parse json bs 
   liftIO $ print parsed 
   case parsed of 
