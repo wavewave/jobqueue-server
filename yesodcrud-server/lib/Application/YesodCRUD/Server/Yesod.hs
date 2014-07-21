@@ -1,8 +1,13 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes, DeriveDataTypeable, 
-             MultiParamTypeClasses, TypeFamilies, FlexibleContexts,  
-             FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-} 
 
 module Application.YesodCRUD.Server.Yesod where 
 
@@ -32,14 +37,10 @@ mkYesod "YesodcrudServer" [parseRoutes|
 |]
 
 instance Yesod YesodcrudServer where
-  -- approot = ""
   maximumContentLength _ _ = Just 100000000
 
-{-instance RenderMessage YesodcrudServer FormMessage where
-  renderMessage _ _ = defaultFormMessage -}
 
-
-getHomeR :: Handler RepHtml 
+getHomeR :: Handler Html 
 getHomeR = do 
   liftIO $ putStrLn "getHomeR called"
   defaultLayout [whamlet|
@@ -56,16 +57,15 @@ defhlet :: Widget
 defhlet = [whamlet| <h1> HTML output not supported |]
 
 
-getListYesodcrudR :: Handler TypedContent
+getListYesodcrudR :: Handler Value -- TypedContent
 getListYesodcrudR = do 
   liftIO $ putStrLn "getQueueListR called" 
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ query acid QueryAll
-  liftIO $ putStrLn $ show r 
-  defaultLayoutJson defhlet (returnJson (Just r))
+  returnJson (Just r)
 
 
-postUploadYesodcrudR :: Handler TypedContent
+postUploadYesodcrudR :: Handler Value -- TypedContent
 postUploadYesodcrudR = do 
   liftIO $ putStrLn "postQueueR called" 
   acid <- server_acid <$> getYesod
@@ -80,21 +80,20 @@ postUploadYesodcrudR = do
       case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 
         Success minfo -> do 
           r <- liftIO $ update acid (AddYesodcrud minfo)
-          liftIO $ print (Just r)
-          defaultLayoutJson defhlet (returnJson (Just r))
+          returnJson (Just r)
         Error err -> do 
           liftIO $ putStrLn err 
-          defaultLayoutJson defhlet (returnJson (Nothing :: Maybe YesodcrudInfo))
+          returnJson (Nothing :: Maybe YesodcrudInfo)
     Fail _ ctxts err -> do 
       liftIO $ putStrLn (concat ctxts++err)
-      defaultLayoutJson defhlet (returnJson (Nothing :: Maybe YesodcrudInfo))
+      returnJson (Nothing :: Maybe YesodcrudInfo)
     Partial _ -> do 
       liftIO $ putStrLn "partial" 
-      defaultLayoutJson defhlet (returnJson (Nothing :: Maybe YesodcrudInfo))
+      returnJson (Nothing :: Maybe YesodcrudInfo)
 
 
 
-handleYesodcrudR :: UUID -> Handler TypedContent
+handleYesodcrudR :: UUID -> Handler Value -- TypedContent
 handleYesodcrudR name = do
   wr <- return.reqWaiRequest =<< getRequest
   case requestMethod wr of 
@@ -103,24 +102,22 @@ handleYesodcrudR name = do
     "DELETE" -> deleteYesodcrudR name
     x -> error ("No such action " ++ show x ++ " in handlerYesodcrudR")
 
-getYesodcrudR :: UUID -> Handler TypedContent
+getYesodcrudR :: UUID -> Handler Value -- TypedContent
 getYesodcrudR idee = do 
   liftIO $ putStrLn "getYesodcrudR called"
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ query acid (QueryYesodcrud idee)
-  liftIO $ putStrLn $ show r 
-  let hlet = [whamlet| <h1> File #{idee}|]
-  defaultLayoutJson hlet (returnJson (Just r))
+  -- let hlet = [whamlet| <h1> File #{idee}|]
+  returnJson (Just r)
 
 
-putYesodcrudR :: UUID -> Handler TypedContent
+putYesodcrudR :: UUID -> Handler Value -- TypedContent
 putYesodcrudR idee = do 
   liftIO $ putStrLn "putYesodcrudR called"
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr 
                                return (if S.null bstr then Nothing else Just bstr)
-  -- liftIO $ runResourceT (requestBody wr $$ CL.consume)
   let bs = S.concat bs' 
   let parsed = parse json bs 
   liftIO $ print parsed 
@@ -130,23 +127,22 @@ putYesodcrudR idee = do
         Success minfo -> do 
           if idee == yesodcrud_uuid minfo
             then do r <- liftIO $ update acid (UpdateYesodcrud minfo)
-                    defaultLayoutJson defhlet (returnJson (Just r))
+                    returnJson (Just r)
             else do liftIO $ putStrLn "yesodcrudname mismatched"
-                    defaultLayoutJson defhlet (returnJson (Nothing :: Maybe YesodcrudInfo))
+                    returnJson (Nothing :: Maybe YesodcrudInfo)
         Error err -> do 
           liftIO $ putStrLn err 
-          defaultLayoutJson defhlet (returnJson (Nothing :: Maybe YesodcrudInfo))
+          returnJson (Nothing :: Maybe YesodcrudInfo)
     Fail _ ctxts err -> do 
       liftIO $ putStrLn (concat ctxts++err)
-      defaultLayoutJson defhlet (returnJson (Nothing :: Maybe YesodcrudInfo))
+      returnJson (Nothing :: Maybe YesodcrudInfo)
          
     Partial _ -> do 
       liftIO $ putStrLn "partial" 
-      defaultLayoutJson defhlet (returnJson (Nothing :: Maybe YesodcrudInfo))
+      returnJson (Nothing :: Maybe YesodcrudInfo)
 
-deleteYesodcrudR :: UUID -> Handler TypedContent
+deleteYesodcrudR :: UUID -> Handler Value -- TypedContent
 deleteYesodcrudR idee = do 
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ update acid (DeleteYesodcrud idee)
-  liftIO $ putStrLn $ show r 
-  defaultLayoutJson defhlet (returnJson (Just r))
+  returnJson (Just r)
