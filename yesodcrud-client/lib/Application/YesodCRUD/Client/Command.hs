@@ -22,7 +22,7 @@ commandLineProcess (Delete cfg n) = do
   putStrLn "delete called"
   mc <- getYesodcrudClientConfiguration =<< load [Required cfg] 
   maybe (error "cannot parse config") (flip startDelete n) mc
-commandLineProcess (GetList cfg) = do 
+commandLineProcess (List cfg) = do 
   putStrLn "getlist called"
   mc <- getYesodcrudClientConfiguration =<< load [Required cfg] 
   maybe (error "cannot parse config") startGetList mc

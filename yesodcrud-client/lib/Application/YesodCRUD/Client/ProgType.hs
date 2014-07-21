@@ -2,39 +2,41 @@
 
 module Application.YesodCRUD.Client.ProgType where 
 
-import System.FilePath
+-- import System.FilePath
 import System.Console.CmdArgs hiding (name)
 
-data Yesodcrud_client = Create { config :: FilePath, modulename :: String }
-                  | Get    { config :: FilePath, name :: String } 
-                  | Put    { config :: FilePath, name :: FilePath, modulename :: String } 
-                  | Delete { config :: FilePath, name :: String } 
-                  | GetList { config :: FilePath } 
-              deriving (Show,Data,Typeable)
+data Yesodcrud_client 
+       = Create { config :: FilePath, name :: String }
+       | Get    { config :: FilePath, uuid :: String } 
+       | Put    { config :: FilePath, uuid :: FilePath, name :: String } 
+       | Delete { config :: FilePath, uuid :: String } 
+       | List   { config :: FilePath } 
+       deriving (Show,Data,Typeable)
 
 create :: Yesodcrud_client
 create = Create { config = "test.conf"
-                , modulename = "" &= typ "MODULENAME" &= argPos 0
+                , name = "" &= typ "NAME"
                 }
 
 get :: Yesodcrud_client 
 get = Get { config = "test.conf" 
-          , name = "" &= typ "NAME" &= argPos 0 
+          , uuid = "" &= typ "UUID"
           } 
 
 put :: Yesodcrud_client 
 put = Put { config = "test.conf"
-          , name = "" &= typ "NAME" &= argPos 0 
-          , modulename = "" &= typ "NAME" &= argPos 1
+          , uuid = "" &= typ "UUID" 
+          , name = "" &= typ "NAME"
           }
 
 delete :: Yesodcrud_client 
 delete = Delete { config = "test.conf"
-                , name = "" &= typ "NAME" &= argPos 0 
+                , uuid = "" &= typ "UUID" 
                 }
 
-getlist :: Yesodcrud_client 
-getlist = GetList { config = "test.conf" } 
+list :: Yesodcrud_client 
+list = List { config = "test.conf" } 
 
-mode = modes [ create, get, put, delete, getlist ]
+mode :: Yesodcrud_client
+mode = modes [ create, get, put, delete, list ]
 

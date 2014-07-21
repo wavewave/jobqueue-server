@@ -11,7 +11,7 @@ import Data.Aeson.Encode as E
 import Data.Aeson.Parser
 import qualified Data.Attoparsec as A
 
-import Network.HTTP.Types -- hiding (statusCode)
+import Network.HTTP.Types
 import Network.HTTP.Types.Status
 import Network.HTTP.Conduit
 
@@ -41,7 +41,7 @@ startCreate mc name = do
   let url = yesodcrudServerURL mc 
   uuid <- nextUUID mc
   let info = YesodcrudInfo { yesodcrud_uuid = uuid , yesodcrud_name = name } 
-  response <- yesodcrudToServer url ("uploadyesodcrud") methodPost info
+  response <- yesodcrudToServer url ("create") methodPost info
   putStrLn $ show response 
 
 
@@ -49,7 +49,7 @@ startGet :: YesodcrudClientConfiguration -> String -> IO ()
 startGet mc idee = do 
   putStrLn $"get " ++ idee
   let url = yesodcrudServerURL mc 
-  r <- jsonFromServer url ("yesodcrud" </> idee) methodGet
+  r <- jsonFromServer url ("id" </> idee) methodGet
   putStrLn $ show r 
 
 
@@ -58,21 +58,19 @@ startPut :: YesodcrudClientConfiguration
          -> String  -- ^ yesodcrud name 
          -> IO () 
 startPut mc idee name = do 
-  putStrLn "job started"
   cwd <- getCurrentDirectory
   let url = yesodcrudServerURL mc 
       info = case fromString idee of 
                Nothing -> error "strange in startPut" 
                Just idee' -> YesodcrudInfo { yesodcrud_uuid = idee', yesodcrud_name = name }
-  response <- yesodcrudToServer url ("yesodcrud" </> idee) methodPut info
+  response <- yesodcrudToServer url ("id" </> idee) methodPut info
   putStrLn $ show response 
 
 
 startDelete :: YesodcrudClientConfiguration -> String -> IO () 
 startDelete mc idee = do 
-  putStrLn "job started"
   let url = yesodcrudServerURL mc 
-  r <- jsonFromServer url ("yesodcrud" </> idee) methodDelete
+  r <- jsonFromServer url ("id" </> idee) methodDelete
   putStrLn $ show r 
 
 
@@ -80,7 +78,7 @@ startGetList :: YesodcrudClientConfiguration -> IO ()
 startGetList mc = do 
   putStrLn "getlist: "
   let url = yesodcrudServerURL mc 
-  r <- jsonFromServer url ("listyesodcrud") methodGet
+  r <- jsonFromServer url ("list") methodGet
   putStrLn $ show r 
 
 
