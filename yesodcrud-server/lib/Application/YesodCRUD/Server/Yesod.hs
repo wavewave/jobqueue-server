@@ -13,13 +13,10 @@ module Application.YesodCRUD.Server.Yesod where
 
 import           Control.Applicative
 import           Control.Monad.Loops
--- import           Control.Monad.Trans.Resource
 import           Data.Acid
 import           Data.Aeson as A
 import           Data.Attoparsec.ByteString as P
 import qualified Data.ByteString as S
--- import           Data.Conduit 
--- import qualified Data.Conduit.List as CL
 import           Data.UUID
 import           Network.Wai
 import           Yesod hiding (update)
@@ -47,17 +44,13 @@ getHomeR = do
 !!!
 <html>
   <head> 
-    <title> test 
+    <title> yesod crud
   <body> 
-    <h1> hello world 
+    <h1> YESOD CRUD EXAMPLE
 |]
 
 
-defhlet :: Widget
-defhlet = [whamlet| <h1> HTML output not supported |]
-
-
-getListYesodcrudR :: Handler Value -- TypedContent
+getListYesodcrudR :: Handler Value
 getListYesodcrudR = do 
   liftIO $ putStrLn "getQueueListR called" 
   acid <- return.server_acid =<< getYesod
@@ -65,7 +58,7 @@ getListYesodcrudR = do
   returnJson (Just r)
 
 
-postUploadYesodcrudR :: Handler Value -- TypedContent
+postUploadYesodcrudR :: Handler Value
 postUploadYesodcrudR = do 
   liftIO $ putStrLn "postQueueR called" 
   acid <- server_acid <$> getYesod
@@ -73,8 +66,20 @@ postUploadYesodcrudR = do
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr      
                                return (if S.null bstr then Nothing else Just bstr)
   let bs = S.concat bs' 
-  let parsed = parse json bs 
+  let parsed = parseOnly json bs 
   case parsed of 
+    Left err -> do liftIO $ putStrLn err 
+                   returnJson (Nothing :: Maybe YesodcrudInfo)
+    Right parsedjson -> do 
+      case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 
+        Success minfo -> do 
+          r <- liftIO $ update acid (AddYesodcrud minfo)
+          returnJson (Just r)
+        Error err -> do 
+          liftIO $ putStrLn err 
+          returnJson (Nothing :: Maybe YesodcrudInfo)
+
+{-  
     Done _ parsedjson -> do 
       case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 
         Success minfo -> do 
@@ -89,10 +94,10 @@ postUploadYesodcrudR = do
     Partial _ -> do 
       liftIO $ putStrLn "partial" 
       returnJson (Nothing :: Maybe YesodcrudInfo)
+-}
 
 
-
-handleYesodcrudR :: UUID -> Handler Value -- TypedContent
+handleYesodcrudR :: UUID -> Handler Value
 handleYesodcrudR name = do
   wr <- return.reqWaiRequest =<< getRequest
   case requestMethod wr of 
@@ -101,16 +106,15 @@ handleYesodcrudR name = do
     "DELETE" -> deleteYesodcrudR name
     x -> error ("No such action " ++ show x ++ " in handlerYesodcrudR")
 
-getYesodcrudR :: UUID -> Handler Value -- TypedContent
+getYesodcrudR :: UUID -> Handler Value
 getYesodcrudR idee = do 
   liftIO $ putStrLn "getYesodcrudR called"
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ query acid (QueryYesodcrud idee)
-  -- let hlet = [whamlet| <h1> File #{idee}|]
   returnJson (Just r)
 
 
-putYesodcrudR :: UUID -> Handler Value -- TypedContent
+putYesodcrudR :: UUID -> Handler Value
 putYesodcrudR idee = do 
   liftIO $ putStrLn "putYesodcrudR called"
   acid <- server_acid <$> getYesod
@@ -118,7 +122,23 @@ putYesodcrudR idee = do
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr 
                                return (if S.null bstr then Nothing else Just bstr)
   let bs = S.concat bs' 
-  let parsed = parse json bs 
+  let parsed = parseOnly json bs 
+  case parsed of 
+    Left err -> do liftIO $ putStrLn err 
+                   returnJson (Nothing :: Maybe YesodcrudInfo)
+    Right parsedjson -> do 
+      case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 
+        Success minfo -> do 
+          if idee == yesodcrud_uuid minfo
+            then do r <- liftIO $ update acid (UpdateYesodcrud minfo)
+                    returnJson (Just r)
+            else do liftIO $ putStrLn "yesodcrudname mismatched"
+                    returnJson (Nothing :: Maybe YesodcrudInfo)
+        Error err -> do 
+          liftIO $ putStrLn err 
+          returnJson (Nothing :: Maybe YesodcrudInfo)
+ 
+  {- 
   case parsed of 
     Done _ parsedjson -> do 
       case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 
@@ -138,8 +158,9 @@ putYesodcrudR idee = do
     Partial _ -> do 
       liftIO $ putStrLn "partial" 
       returnJson (Nothing :: Maybe YesodcrudInfo)
+   -}
 
-deleteYesodcrudR :: UUID -> Handler Value -- TypedContent
+deleteYesodcrudR :: UUID -> Handler Value
 deleteYesodcrudR idee = do 
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ update acid (DeleteYesodcrud idee)
