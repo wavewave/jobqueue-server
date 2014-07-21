@@ -70,11 +70,10 @@ postUploadYesodcrudR = do
   liftIO $ putStrLn "postQueueR called" 
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
-  bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr       -- BUGGY BUT FOR THE TIME BEING
-                               return (if S.null bstr then Just bstr else Nothing)
-  -- $$ CL.consume
-  -- runResourceT (requestBody wr $$ CL.consume)
-  let bs = S.concat bs' --  for the time being
+  bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr      
+                               return (if S.null bstr then Nothing else Just bstr)
+  liftIO $ print bs'
+  let bs = S.concat bs' 
   let parsed = parse json bs 
   case parsed of 
     Done _ parsedjson -> do 
@@ -120,7 +119,7 @@ putYesodcrudR idee = do
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr 
-                               return (if S.null bstr then Just bstr else Nothing)
+                               return (if S.null bstr then Nothing else Just bstr)
   -- liftIO $ runResourceT (requestBody wr $$ CL.consume)
   let bs = S.concat bs' 
   let parsed = parse json bs 
