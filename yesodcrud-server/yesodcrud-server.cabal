@@ -50,8 +50,8 @@ Library
                  yesod,
                  yesodcrud-type
   Exposed-Modules: 
-                   Application.YesodCRUD.Server.Type
-                   Application.YesodCRUD.Server.Yesod
+                   YesodCRUD.Server.Type
+                   YesodCRUD.Server.Yesod
 
 
 

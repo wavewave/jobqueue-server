@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Application.YesodCRUD.Client.Config where
+module YesodCRUD.Client.Config where
 
 import Control.Applicative
 import Data.Configurator as C

@@ -9,7 +9,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-} 
 
-module Application.YesodCRUD.Server.Yesod where 
+module YesodCRUD.Server.Yesod where 
 
 import           Control.Applicative
 import           Control.Monad.Loops
@@ -21,8 +21,8 @@ import           Data.UUID
 import           Network.Wai
 import           Yesod hiding (update)
 -- 
-import           Application.YesodCRUD.Type
-import           Application.YesodCRUD.Server.Type
+import           YesodCRUD.Type
+import           YesodCRUD.Server.Type
 
 
 

@@ -1,15 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Application.YesodCRUD.Server.Type where
+module YesodCRUD.Server.Type where
 
-import Control.Applicative
 import Data.Text.Encoding as E
 import Data.UUID
 import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString as B
 -- import Yesod.Dispatch
 import Text.Blaze
-import Application.YesodCRUD.Type
+import YesodCRUD.Type
 -- import Debug.Trace 
 import Data.Acid
 import Web.PathPieces

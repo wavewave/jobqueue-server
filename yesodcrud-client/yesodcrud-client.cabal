@@ -43,10 +43,10 @@ Library
                    uuid
 
   Exposed-Modules: 
-                   Application.YesodCRUD.Client.ProgType
-                   Application.YesodCRUD.Client.Job
-                   Application.YesodCRUD.Client.Config
-                   Application.YesodCRUD.Client.Command
+                   YesodCRUD.Client.ProgType
+                   YesodCRUD.Client.Job
+                   YesodCRUD.Client.Config
+                   YesodCRUD.Client.Command
   Other-Modules: 
 
  

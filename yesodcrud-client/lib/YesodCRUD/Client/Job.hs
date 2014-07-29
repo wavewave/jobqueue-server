@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Application.YesodCRUD.Client.Job where
+module YesodCRUD.Client.Job where
 
 import Debug.Trace
 
@@ -19,8 +19,8 @@ import System.Directory
 import System.FilePath
 import Unsafe.Coerce
 
-import Application.YesodCRUD.Client.Config
-import Application.YesodCRUD.Type
+import YesodCRUD.Client.Config
+import YesodCRUD.Type
 import Data.UUID
 import Data.UUID.V5
 import qualified Data.ByteString as B

@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module Application.YesodCRUD.Client.ProgType where 
+module YesodCRUD.Client.ProgType where 
 
 -- import System.FilePath
 import System.Console.CmdArgs hiding (name)

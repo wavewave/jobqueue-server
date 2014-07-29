@@ -1,8 +1,8 @@
-module Application.YesodCRUD.Client.Command where
+module YesodCRUD.Client.Command where
 
-import Application.YesodCRUD.Client.ProgType
-import Application.YesodCRUD.Client.Job
-import Application.YesodCRUD.Client.Config
+import YesodCRUD.Client.ProgType
+import YesodCRUD.Client.Job
+import YesodCRUD.Client.Config
 import Data.Configurator
 
 commandLineProcess :: Yesodcrud_client -> IO ()

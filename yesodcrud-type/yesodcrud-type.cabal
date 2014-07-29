@@ -24,4 +24,4 @@ Library
                    bytestring,
                    text,
                    aeson
-  exposed-modules: Application.YesodCRUD.Type
+  exposed-modules: YesodCRUD.Type

@@ -2,8 +2,8 @@ module Main where
 
 import System.Console.CmdArgs
 
-import Application.YesodCRUD.Client.ProgType
-import Application.YesodCRUD.Client.Command
+import YesodCRUD.Client.ProgType
+import YesodCRUD.Client.Command
 
 main :: IO () 
 main = do 

@@ -5,7 +5,7 @@
              OverloadedStrings, 
              FlexibleInstances #-}
 
-module Application.YesodCRUD.Type where
+module YesodCRUD.Type where
 
 import           Control.Applicative 
 import           Control.Monad.Reader
