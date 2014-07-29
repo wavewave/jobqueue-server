@@ -15,13 +15,17 @@ Library
   ghc-options: 	-Wall -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: 
-                   base == 4.*, 
-                   mtl, 
-                   uuid,
-                   containers,
-                   -- safecopy,
                    -- acid-state,
+                   aeson,
+                   base == 4.*, 
                    bytestring,
+                   containers,
+                   mtl, 
+                   persistent,
+                   persistent-sqlite,
+                   persistent-template, 
+                   -- safecopy,
                    text,
-                   aeson
+                   uuid
+
   exposed-modules: YesodCRUD.Type

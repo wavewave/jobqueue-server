@@ -4,22 +4,27 @@
              TypeSynonymInstances, 
              OverloadedStrings, 
              FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module YesodCRUD.Type where
 
 import           Control.Applicative 
 import           Control.Monad.Reader
 import           Control.Monad.State
--- import           Data.Acid 
 import           Data.Aeson
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import           Data.Data
 import qualified Data.Map as M
--- import           Data.SafeCopy
+import qualified Data.Text as T
 import           Data.Text.Encoding as E
 import           Data.Typeable
 import           Data.UUID
+import           Database.Persist
+import           Database.Persist.Sqlite
+import           Database.Persist.TH
 
 -- | 
 data YesodcrudInfo = YesodcrudInfo { 
@@ -44,6 +49,16 @@ instance FromJSON YesodcrudInfo where
 -- |
 instance ToJSON YesodcrudInfo where
   toJSON (YesodcrudInfo uuid name) = object [ "uuid" .= uuid , "name" .= name ] 
+
+
+share [mkPersist sqlSettings, mkMigrate "migrateCrud"] [persistLowerCase|
+CrudInfo 
+  uuid T.Text
+  name T.Text
+  UniqueUUID uuid
+  deriving Show
+|]
+
 
 {- 
 -- |
