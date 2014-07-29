@@ -19,8 +19,8 @@ Library
                    mtl, 
                    uuid,
                    containers,
-                   safecopy,
-                   acid-state,
+                   -- safecopy,
+                   -- acid-state,
                    bytestring,
                    text,
                    aeson

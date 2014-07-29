@@ -2,15 +2,13 @@
 
 module YesodCRUD.Server.Type where
 
-import Data.Text.Encoding as E
-import Data.UUID
+-- import Data.Acid
 import qualified Data.ByteString.Char8 as C
--- import Yesod.Dispatch
-import Text.Blaze
-import YesodCRUD.Type
--- import Debug.Trace 
-import Data.Acid
-import Web.PathPieces
+import           Data.Text.Encoding as E
+import           Data.UUID
+import           Text.Blaze
+import           Web.PathPieces
+-- import           YesodCRUD.Type
 
 instance PathPiece UUID where
   fromPathPiece = fromString . C.unpack . E.encodeUtf8
@@ -19,6 +17,6 @@ instance PathPiece UUID where
 instance ToMarkup UUID where
   toMarkup = toMarkup . toString 
 
-data YesodcrudServer = YesodcrudServer {
+data YesodcrudServer = YesodcrudServer {- {
   server_acid :: AcidState YesodcrudInfoRepository
-}
+} -}

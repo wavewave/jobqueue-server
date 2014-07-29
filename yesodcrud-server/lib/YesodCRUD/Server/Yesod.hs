@@ -13,7 +13,7 @@ module YesodCRUD.Server.Yesod where
 
 import           Control.Applicative
 import           Control.Monad.Loops
-import           Data.Acid
+-- import           Data.Acid
 import           Data.Aeson as A
 import           Data.Attoparsec.ByteString as P
 import qualified Data.ByteString as S
@@ -51,14 +51,14 @@ getHomeR = do
 
 -- | 
 getListR :: Handler Value
-getListR = do 
+getListR = undefined {- do 
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ query acid QueryAll
-  returnJson (Just r)
+  returnJson (Just r) -}
 
 -- |
 postCreateR :: Handler Value
-postCreateR = do 
+postCreateR = undefined {- do 
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr      
@@ -76,27 +76,28 @@ postCreateR = do
         Error err -> do 
           liftIO $ putStrLn err 
           returnJson (Nothing :: Maybe YesodcrudInfo)
+  -}
 
 -- | 
 handleUUIDR :: UUID -> Handler Value
-handleUUIDR uuid = do
+handleUUIDR uuid = undefined {- do
   wr <- return.reqWaiRequest =<< getRequest
   case requestMethod wr of 
     "GET" -> getUUIDR uuid
     "PUT" -> putUUIDR uuid
     "DELETE" -> deleteUUIDR uuid
     x -> error ("No such action " ++ show x ++ " in handleUUIDR")
-
+   -}
 -- |
 getUUIDR :: UUID -> Handler Value
-getUUIDR idee = do 
+getUUIDR idee = undefined {- do 
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ query acid (QueryYesodcrud idee)
-  returnJson (Just r)
+  returnJson (Just r) -}
 
 -- | 
 putUUIDR :: UUID -> Handler Value
-putUUIDR idee = do 
+putUUIDR idee = undefined {- do 
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr 
@@ -117,10 +118,12 @@ putUUIDR idee = do
         Error err -> do 
           liftIO $ putStrLn err 
           returnJson (Nothing :: Maybe YesodcrudInfo)
- 
+  -}
+
 -- | 
 deleteUUIDR :: UUID -> Handler Value
-deleteUUIDR idee = do 
+deleteUUIDR idee = undefined {- do 
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ update acid (DeleteYesodcrud idee)
   returnJson (Just r)
+  -}
