@@ -39,6 +39,7 @@ Library
                    http-types,
                    aeson,
                    attoparsec,
+                   text,
                    time,
                    uuid
 

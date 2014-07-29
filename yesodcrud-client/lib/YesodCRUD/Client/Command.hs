@@ -1,15 +1,18 @@
 module YesodCRUD.Client.Command where
 
+import Data.Configurator
+import qualified Data.Text as T
+--
 import YesodCRUD.Client.ProgType
 import YesodCRUD.Client.Job
 import YesodCRUD.Client.Config
-import Data.Configurator
+
 
 commandLineProcess :: Yesodcrud_client -> IO ()
 commandLineProcess (Create cfg mn) = do 
   putStrLn "create called"
   mc <- getYesodcrudClientConfiguration =<< load [Required cfg] 
-  maybe (error "cannot parse config") (flip startCreate mn) mc
+  maybe (error "cannot parse config") (flip startCreate (T.pack mn)) mc
 commandLineProcess (Get cfg n) = do 
   putStrLn "get called"
   mc <- getYesodcrudClientConfiguration =<< load [Required cfg] 
@@ -17,7 +20,7 @@ commandLineProcess (Get cfg n) = do
 commandLineProcess (Put cfg n mn) = do 
   putStrLn "put called"
   mc <- getYesodcrudClientConfiguration =<< load [Required cfg] 
-  maybe (error "cannot parse config") (\c-> startPut c n mn) mc
+  maybe (error "cannot parse config") (\c-> startPut c n (T.pack mn)) mc
 commandLineProcess (Delete cfg n) = do 
   putStrLn "delete called"
   mc <- getYesodcrudClientConfiguration =<< load [Required cfg] 

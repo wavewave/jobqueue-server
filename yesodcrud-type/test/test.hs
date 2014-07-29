@@ -14,16 +14,12 @@ import YesodCRUD.Type
 main = do 
   nuuid <- nextRandom
   -- let uuidtxt = T.pack ( show nuuid )
-
   let ninfo = YesodcrudInfo nuuid "abcdefg"
   -- runSqlite ":memory:" $ do
   runSqlite "test.db" $ do
     runMigration migrateCrud
     insert (toCrudInfo ninfo) -- (CrudInfo uuidtxt "abcdefg")
     dumpdb "crud_info"
-
- 
-
   return ()
 
 dumpdb tablename = rawQuery ("select * from " <> tablename) [] $$ CL.mapM_ (liftIO . print)

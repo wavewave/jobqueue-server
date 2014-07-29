@@ -17,7 +17,10 @@ import           Control.Monad.Loops
 import           Data.Aeson as A
 import           Data.Attoparsec.ByteString as P
 import qualified Data.ByteString as S
+import qualified Data.Text as T
 import           Data.UUID
+import           Database.Persist
+import           Database.Persist.Sqlite
 import           Network.Wai
 import           Yesod hiding (update)
 -- 
@@ -51,14 +54,14 @@ getHomeR = do
 
 -- | 
 getListR :: Handler Value
-getListR = undefined {- do 
+getListR = error "getListR" {- do 
   acid <- return.server_acid =<< getYesod
   r <- liftIO $ query acid QueryAll
   returnJson (Just r) -}
 
 -- |
 postCreateR :: Handler Value
-postCreateR = undefined {- do 
+postCreateR = error "postCreateR" {- do 
   acid <- server_acid <$> getYesod
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr      
@@ -80,25 +83,30 @@ postCreateR = undefined {- do
 
 -- | 
 handleUUIDR :: UUID -> Handler Value
-handleUUIDR uuid = undefined {- do
+handleUUIDR uuid = do
   wr <- return.reqWaiRequest =<< getRequest
   case requestMethod wr of 
     "GET" -> getUUIDR uuid
     "PUT" -> putUUIDR uuid
     "DELETE" -> deleteUUIDR uuid
     x -> error ("No such action " ++ show x ++ " in handleUUIDR")
-   -}
+   
 -- |
 getUUIDR :: UUID -> Handler Value
-getUUIDR idee = undefined {- do 
-  acid <- return.server_acid =<< getYesod
-  r <- liftIO $ query acid (QueryYesodcrud idee)
-  returnJson (Just r) -}
+getUUIDR idee = do 
+  dbfile <- server_db <$> getYesod
+  liftIO $ print dbfile
+  runSqlite dbfile $ do 
+    runMigration migrateCrud
+    mresult <- (getBy . UniqueUUID . T.pack . toString) idee
+    case mresult of 
+      Nothing -> lift (returnJson (Nothing :: Maybe YesodcrudInfo))
+      Just ett -> (lift . returnJson . fromCrudInfo . entityVal) ett
 
 -- | 
 putUUIDR :: UUID -> Handler Value
-putUUIDR idee = undefined {- do 
-  acid <- server_acid <$> getYesod
+putUUIDR idee = do 
+  dbfile <- server_db <$> getYesod
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr 
                                return (if S.null bstr then Nothing else Just bstr)
@@ -111,14 +119,24 @@ putUUIDR idee = undefined {- do
       case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 
         Success minfo -> do 
           if idee == yesodcrud_uuid minfo
-            then do r <- liftIO $ update acid (UpdateYesodcrud minfo)
-                    returnJson (Just r)
-            else do liftIO $ putStrLn "yesodcrudname mismatched"
-                    returnJson (Nothing :: Maybe YesodcrudInfo)
+            then  
+              runSqlite dbfile $ do
+                runMigration migrateCrud
+                mresult <- (getBy . UniqueUUID . T.pack . toString) idee
+
+                case mresult of 
+                  Nothing -> lift (returnJson (Nothing :: Maybe YesodcrudInfo))
+                  Just ett -> do 
+                    update (entityKey ett) [ CrudInfoName =. yesodcrud_name minfo ]
+                    lift (returnJson (Just minfo)) 
+                -- lift (returnJson (Nothing :: Maybe YesodcrudInfo))
+            else do 
+              liftIO $ putStrLn "yesodcrudname mismatched"
+              returnJson (Nothing :: Maybe YesodcrudInfo)
         Error err -> do 
           liftIO $ putStrLn err 
           returnJson (Nothing :: Maybe YesodcrudInfo)
-  -}
+ 
 
 -- | 
 deleteUUIDR :: UUID -> Handler Value

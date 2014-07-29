@@ -10,7 +10,7 @@ import Data.Aeson.Types
 import Data.Aeson.Encode as E
 import Data.Aeson.Parser
 import qualified Data.Attoparsec as A
-
+import qualified Data.Text as T
 import Network.HTTP.Types
 import Network.HTTP.Types.Status
 import Network.HTTP.Conduit
@@ -34,7 +34,7 @@ nextUUID mc = do
   t <- getCurrentTime 
   return . generateNamed namespaceURL . B.unpack . SC.pack $ c ++ "/" ++ show t 
 
-startCreate :: YesodcrudClientConfiguration -> String -> IO () 
+startCreate :: YesodcrudClientConfiguration -> T.Text -> IO () 
 startCreate mc name = do 
   putStrLn "job started"
   cwd <- getCurrentDirectory
@@ -55,7 +55,7 @@ startGet mc idee = do
 
 startPut :: YesodcrudClientConfiguration 
          -> String  -- ^ yesodcrud idee
-         -> String  -- ^ yesodcrud name 
+         -> T.Text  -- ^ yesodcrud name 
          -> IO () 
 startPut mc idee name = do 
   cwd <- getCurrentDirectory
