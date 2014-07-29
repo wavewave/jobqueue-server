@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module YesodCRUD.Type where
 
@@ -29,7 +30,7 @@ import           Database.Persist.TH
 -- | 
 data YesodcrudInfo = YesodcrudInfo { 
   yesodcrud_uuid :: UUID, 
-  yesodcrud_name :: String
+  yesodcrud_name :: T.Text
 } deriving (Show,Typeable,Data)
 
 -- |
@@ -59,6 +60,13 @@ CrudInfo
   deriving Show
 |]
 
+fromCrudInfo :: CrudInfo -> Maybe YesodcrudInfo
+fromCrudInfo (CrudInfo uuidtxt nametxt) = 
+    let muuid = fromString (T.unpack uuidtxt)
+    in  fmap (\x -> YesodcrudInfo x nametxt) muuid
+
+toCrudInfo :: YesodcrudInfo -> CrudInfo
+toCrudInfo YesodcrudInfo {..} = CrudInfo (T.pack (toString yesodcrud_uuid)) yesodcrud_name
 
 {- 
 -- |
