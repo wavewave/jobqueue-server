@@ -135,7 +135,6 @@ putUUIDR idee = do
                   Just ett -> do 
                     update (entityKey ett) [ CrudInfoName =. yesodcrud_name minfo ]
                     lift (returnJson (Just minfo)) 
-                -- lift (returnJson (Nothing :: Maybe YesodcrudInfo))
             else do 
               liftIO $ putStrLn "yesodcrudname mismatched"
               returnJson (Nothing :: Maybe YesodcrudInfo)
@@ -146,8 +145,10 @@ putUUIDR idee = do
 
 -- | 
 deleteUUIDR :: UUID -> Handler Value
-deleteUUIDR idee = undefined {- do 
-  acid <- return.server_acid =<< getYesod
-  r <- liftIO $ update acid (DeleteYesodcrud idee)
-  returnJson (Just r)
-  -}
+deleteUUIDR idee = do 
+  dbfile <- server_db <$> getYesod
+  runSqlite dbfile $ do
+    runMigration migrateCrud
+    (deleteBy . UniqueUUID . T.pack . toString) idee
+    returnJson (Nothing :: Maybe Int)
+
