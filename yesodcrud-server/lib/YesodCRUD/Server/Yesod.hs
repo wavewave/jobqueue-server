@@ -17,6 +17,7 @@ import           Control.Monad.Loops
 import           Data.Aeson as A
 import           Data.Attoparsec.ByteString as P
 import qualified Data.ByteString as S
+import           Data.Maybe
 import qualified Data.Text as T
 import           Data.UUID
 import           Database.Persist
@@ -54,15 +55,18 @@ getHomeR = do
 
 -- | 
 getListR :: Handler Value
-getListR = error "getListR" {- do 
-  acid <- return.server_acid =<< getYesod
-  r <- liftIO $ query acid QueryAll
-  returnJson (Just r) -}
+getListR = do 
+  dbfile <- server_db <$> getYesod
+  runSqlite dbfile $ do 
+    runMigration migrateCrud
+    results <- selectList [] [] 
+    (returnJson . catMaybes) 
+      (map (fromCrudInfo . entityVal) results :: [Maybe YesodcrudInfo])
 
 -- |
 postCreateR :: Handler Value
-postCreateR = error "postCreateR" {- do 
-  acid <- server_acid <$> getYesod
+postCreateR = do
+  dbfile <- server_db <$> getYesod
   wr <- reqWaiRequest <$> getRequest
   bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr      
                                return (if S.null bstr then Nothing else Just bstr)
@@ -74,12 +78,14 @@ postCreateR = error "postCreateR" {- do
     Right parsedjson -> do 
       case (A.fromJSON parsedjson :: A.Result YesodcrudInfo) of 
         Success minfo -> do 
-          r <- liftIO $ update acid (AddYesodcrud minfo)
-          returnJson (Just r)
+          runSqlite dbfile $ do
+            runMigration migrateCrud
+            insert (toCrudInfo minfo) 
+            returnJson (Just minfo)
         Error err -> do 
           liftIO $ putStrLn err 
           returnJson (Nothing :: Maybe YesodcrudInfo)
-  -}
+
 
 -- | 
 handleUUIDR :: UUID -> Handler Value
