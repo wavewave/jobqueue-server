@@ -1,7 +1,7 @@
-Name:		yesodcrud-server
+Name:		jobqueue-server
 Version:	0.0
-Synopsis:	CRUD sample server
-Description: 	CRUD sample server
+Synopsis:	jobqueue server
+Description: 	jobqueue server
 License: 	BSD3
 License-file:	LICENSE
 Author:		Ian-Woo Kim
@@ -9,17 +9,16 @@ Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
 Build-Type: 	Simple
 Cabal-Version:  >= 1.8
 
-Executable yesodcrud-server
-  Main-is: yesodcrud-server.hs
+Executable jobqueue-server
+  Main-is: jobqueue-server.hs
   hs-source-dirs: exe
   Build-Depends: base == 4.*, 
                  yesod, 
                  uuid,
                  bytestring, 
                  containers, 
-                 -- acid-state, 
-                 yesodcrud-type,
-                 yesodcrud-server
+                 jobqueue-type,
+                 jobqueue-server
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind -fno-warn-orphans 
   ghc-prof-options: -caf-all -auto-all
 
@@ -28,7 +27,6 @@ Library
   ghc-options: 	-Wall -funbox-strict-fields -fno-warn-unused-do-bind -fno-warn-orphans
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: 
-                 -- acid-state,
                  aeson,
                  attoparsec,
                  base == 4.*, 
@@ -44,7 +42,6 @@ Library
                  persistent,
                  persistent-sqlite,
                  resourcet,
-                 -- safecopy,
                  text,
                  uuid,
                  wai-extra,
@@ -52,7 +49,7 @@ Library
                  yesod-core,
                  yesod-form,
                  yesod,
-                 yesodcrud-type
+                 jobqueue-type
   Exposed-Modules: 
                    YesodCRUD.Server.Type
                    YesodCRUD.Server.Yesod

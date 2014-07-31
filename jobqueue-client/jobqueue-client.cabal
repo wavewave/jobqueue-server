@@ -1,4 +1,4 @@
-Name:		yesodcrud-client
+Name:		jobqueue-client
 Version:	0.0
 Synopsis:	client program that communicates with model-server
 Description: 	client program that communicates with model-server
@@ -11,8 +11,8 @@ Cabal-Version:  >= 1.8
 data-files:     
 
 
-Executable yesodcrud-client
-  Main-is: yesodcrud-client.hs
+Executable jobqueue-client
+  Main-is: jobqueue-client.hs
   hs-source-dirs: exe
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
@@ -20,7 +20,7 @@ Executable yesodcrud-client
                    base == 4.*, 
                    mtl,
                    cmdargs,
-                   yesodcrud-client
+                   jobqueue-client
 
 Library
   hs-source-dirs: lib
@@ -32,7 +32,6 @@ Library
                    directory,
                    filepath,
                    cmdargs,
-                   yesodcrud-type,
                    configurator,
                    bytestring,
                    http-conduit,
@@ -41,7 +40,9 @@ Library
                    attoparsec,
                    text,
                    time,
-                   uuid
+                   uuid,
+                   jobqueue-type
+
 
   Exposed-Modules: 
                    YesodCRUD.Client.ProgType

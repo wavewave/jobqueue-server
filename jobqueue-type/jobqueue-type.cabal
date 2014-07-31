@@ -1,7 +1,7 @@
-Name:		yesodcrud-type
+Name:		jobqueue-type
 Version:	0.0
-Synopsis:	CRUD sample type 
-Description: 	CRUD sample type 
+Synopsis:	jobqueue type 
+Description: 	jobqueue type 
 License: 	BSD3
 License-file:	LICENSE
 Author:		Ian-Woo Kim
@@ -15,7 +15,6 @@ Library
   ghc-options: 	-Wall -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: 
-                   -- acid-state,
                    aeson,
                    base == 4.*, 
                    bytestring,
@@ -24,7 +23,6 @@ Library
                    persistent,
                    persistent-sqlite,
                    persistent-template, 
-                   -- safecopy,
                    text,
                    uuid
 
