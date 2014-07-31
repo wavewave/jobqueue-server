@@ -1,0 +1,54 @@
+Name:		yesodcrud-client
+Version:	0.0
+Synopsis:	client program that communicates with model-server
+Description: 	client program that communicates with model-server
+License: 	BSD3
+License-file:	LICENSE
+Author:		Ian-Woo Kim
+Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
+Build-Type: 	Simple
+Cabal-Version:  >= 1.8
+data-files:     
+
+
+Executable yesodcrud-client
+  Main-is: yesodcrud-client.hs
+  hs-source-dirs: exe
+  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
+  ghc-prof-options: -caf-all -auto-all
+  Build-Depends: 
+                   base == 4.*, 
+                   mtl,
+                   cmdargs,
+                   yesodcrud-client
+
+Library
+  hs-source-dirs: lib
+  ghc-options: 	-Wall -funbox-strict-fields -fno-warn-unused-do-bind
+  ghc-prof-options: -caf-all -auto-all
+  Build-Depends: 
+                   base == 4.*, 
+                   mtl,
+                   directory,
+                   filepath,
+                   cmdargs,
+                   yesodcrud-type,
+                   configurator,
+                   bytestring,
+                   http-conduit,
+                   http-types,
+                   aeson,
+                   attoparsec,
+                   text,
+                   time,
+                   uuid
+
+  Exposed-Modules: 
+                   YesodCRUD.Client.ProgType
+                   YesodCRUD.Client.Job
+                   YesodCRUD.Client.Config
+                   YesodCRUD.Client.Command
+  Other-Modules: 
+
+ 
+		 

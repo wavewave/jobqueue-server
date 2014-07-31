@@ -1,0 +1,62 @@
+Name:		yesodcrud-server
+Version:	0.0
+Synopsis:	CRUD sample server
+Description: 	CRUD sample server
+License: 	BSD3
+License-file:	LICENSE
+Author:		Ian-Woo Kim
+Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
+Build-Type: 	Simple
+Cabal-Version:  >= 1.8
+
+Executable yesodcrud-server
+  Main-is: yesodcrud-server.hs
+  hs-source-dirs: exe
+  Build-Depends: base == 4.*, 
+                 yesod, 
+                 uuid,
+                 bytestring, 
+                 containers, 
+                 -- acid-state, 
+                 yesodcrud-type,
+                 yesodcrud-server
+  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind -fno-warn-orphans 
+  ghc-prof-options: -caf-all -auto-all
+
+Library
+  hs-source-dirs: lib
+  ghc-options: 	-Wall -funbox-strict-fields -fno-warn-unused-do-bind -fno-warn-orphans
+  ghc-prof-options: -caf-all -auto-all
+  Build-Depends: 
+                 -- acid-state,
+                 aeson,
+                 attoparsec,
+                 base == 4.*, 
+                 blaze-html,
+                 blaze-markup,
+                 bytestring,
+                 conduit,
+                 containers, 
+                 filepath,
+                 mtl, 
+                 monad-loops,
+                 path-pieces,
+                 persistent,
+                 persistent-sqlite,
+                 resourcet,
+                 -- safecopy,
+                 text,
+                 uuid,
+                 wai-extra,
+                 wai > 3,
+                 yesod-core,
+                 yesod-form,
+                 yesod,
+                 yesodcrud-type
+  Exposed-Modules: 
+                   YesodCRUD.Server.Type
+                   YesodCRUD.Server.Yesod
+
+
+
+		 
