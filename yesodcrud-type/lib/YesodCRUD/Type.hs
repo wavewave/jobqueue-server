@@ -1,13 +1,13 @@
-{-# LANGUAGE DeriveDataTypeable, 
-             TemplateHaskell, 
-             TypeFamilies, 
-             TypeSynonymInstances, 
-             OverloadedStrings, 
-             FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-} 
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module YesodCRUD.Type where
 
@@ -68,72 +68,7 @@ fromCrudInfo (CrudInfo uuidtxt nametxt) =
 toCrudInfo :: YesodcrudInfo -> CrudInfo
 toCrudInfo YesodcrudInfo {..} = CrudInfo (T.pack (toString yesodcrud_uuid)) yesodcrud_name
 
-{- 
--- |
-instance SafeCopy UUID where 
-  putCopy uuid = contain $ safePut (toByteString uuid) 
-  getCopy = contain 
-            $ maybe (fail "cannot parse UUID") return . fromByteString 
-              =<< safeGet
-
-$(deriveSafeCopy 0 'base ''YesodcrudInfo)
--}
-
-
 -- | 
 type YesodcrudInfoRepository = M.Map UUID YesodcrudInfo 
 
 
-{- 
--- |
-addYesodcrud :: YesodcrudInfo -> Update YesodcrudInfoRepository YesodcrudInfo 
-addYesodcrud minfo = do 
-  m <- get 
-  let (r,m') = M.insertLookupWithKey (\_k _o n -> n) (yesodcrud_uuid minfo) minfo m
-  put m'
-  return minfo
--}
-
-{- 
--- |
-queryYesodcrud :: UUID -> Query YesodcrudInfoRepository (Maybe YesodcrudInfo) 
-queryYesodcrud uuid = do 
-  m <- ask 
-  return (M.lookup uuid m)
--}
-
-{- 
--- |
-queryAll :: Query YesodcrudInfoRepository [YesodcrudInfo]
-queryAll = do m <- ask   
-              return (M.elems m)
--}
-
-{-
--- | 
-updateYesodcrud :: YesodcrudInfo -> Update YesodcrudInfoRepository (Maybe YesodcrudInfo)
-updateYesodcrud minfo = do 
-  m <- get 
-  let (r,m') = M.updateLookupWithKey (\_ _ -> Just minfo) (yesodcrud_uuid minfo) m
-  put m'
-  maybe (return Nothing) (const (return (Just minfo))) r 
--}
-
-
-{-
--- | 
-deleteYesodcrud :: UUID -> Update YesodcrudInfoRepository (Maybe YesodcrudInfo)
-deleteYesodcrud uuid = do 
-  m <- get
-  let r = M.lookup uuid m  
-  case r of 
-    Just _ -> do  
-      let m' = M.delete uuid m  
-      put m' 
-      return r
-    Nothing -> return Nothing
--}
-
-{-
-$(makeAcidic ''YesodcrudInfoRepository [ 'addYesodcrud, 'queryYesodcrud, 'queryAll, 'updateYesodcrud, 'deleteYesodcrud] )
--}
