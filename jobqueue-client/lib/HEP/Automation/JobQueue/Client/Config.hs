@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module YesodCRUD.Client.Config where
+module HEP.Automation.JobQueue.Client.Config where
 
 import Control.Applicative
 import Data.Configurator as C

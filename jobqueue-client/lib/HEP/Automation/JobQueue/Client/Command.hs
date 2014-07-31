@@ -1,11 +1,11 @@
-module YesodCRUD.Client.Command where
+module HEP.Automation.JobQueue.Client.Command where
 
 import Data.Configurator
 import qualified Data.Text as T
 --
-import YesodCRUD.Client.ProgType
-import YesodCRUD.Client.Job
-import YesodCRUD.Client.Config
+import HEP.Automation.JobQueue.Client.ProgType
+import HEP.Automation.JobQueue.Client.Job
+import HEP.Automation.JobQueue.Client.Config
 
 
 commandLineProcess :: Yesodcrud_client -> IO ()

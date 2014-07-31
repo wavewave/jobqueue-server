@@ -51,8 +51,8 @@ Library
                  yesod,
                  jobqueue-type
   Exposed-Modules: 
-                   YesodCRUD.Server.Type
-                   YesodCRUD.Server.Yesod
+                   HEP.Automation.JobQueue.Server.Type
+                   HEP.Automation.JobQueue.Server.Yesod
 
 
 

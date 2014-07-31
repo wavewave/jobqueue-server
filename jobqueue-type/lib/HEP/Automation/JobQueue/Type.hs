@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module YesodCRUD.Type where
+module HEP.Automation.JobQueue.Type where
 
 import           Control.Applicative 
 import           Control.Monad.Reader

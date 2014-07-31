@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module YesodCRUD.Client.Job where
+module HEP.Automation.JobQueue.Client.Job where
 
 import Debug.Trace
 
@@ -10,21 +10,21 @@ import Data.Aeson.Types
 import Data.Aeson.Encode as E
 import Data.Aeson.Parser
 import qualified Data.Attoparsec as A
+import qualified Data.ByteString as B
 import qualified Data.Text as T
+import           Data.Time.Clock
+import Data.UUID
+import Data.UUID.V5
 import Network.HTTP.Types
 import Network.HTTP.Types.Status
 import Network.HTTP.Conduit
-
 import System.Directory 
 import System.FilePath
 import Unsafe.Coerce
+--
+import HEP.Automation.JobQueue.Client.Config
+import HEP.Automation.JobQueue.Type
 
-import YesodCRUD.Client.Config
-import YesodCRUD.Type
-import Data.UUID
-import Data.UUID.V5
-import qualified Data.ByteString as B
-import Data.Time.Clock
 
 type Url = String 
 

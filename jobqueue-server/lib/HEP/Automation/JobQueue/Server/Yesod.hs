@@ -9,7 +9,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-} 
 
-module YesodCRUD.Server.Yesod where 
+module HEP.Automation.JobQueue.Server.Yesod where 
 
 import           Control.Applicative
 import           Control.Monad.Loops
@@ -25,8 +25,8 @@ import           Database.Persist.Sqlite
 import           Network.Wai
 import           Yesod hiding (update)
 -- 
-import           YesodCRUD.Type
-import           YesodCRUD.Server.Type
+import           HEP.Automation.JobQueue.Type
+import           HEP.Automation.JobQueue.Server.Type
 
 
 

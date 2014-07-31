@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module YesodCRUD.Server.Type where
+module HEP.Automation.JobQueue.Server.Type where
 
 -- import Data.Acid
 import qualified Data.ByteString.Char8 as C

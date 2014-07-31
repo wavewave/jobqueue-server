@@ -45,10 +45,10 @@ Library
 
 
   Exposed-Modules: 
-                   YesodCRUD.Client.ProgType
-                   YesodCRUD.Client.Job
-                   YesodCRUD.Client.Config
-                   YesodCRUD.Client.Command
+                   HEP.Automation.JobQueue.Client.ProgType
+                   HEP.Automation.JobQueue.Client.Job
+                   HEP.Automation.JobQueue.Client.Config
+                   HEP.Automation.JobQueue.Client.Command
   Other-Modules: 
 
  

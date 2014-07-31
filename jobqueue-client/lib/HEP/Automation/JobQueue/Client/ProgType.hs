@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module YesodCRUD.Client.ProgType where 
+module HEP.Automation.JobQueue.Client.ProgType where 
 
 -- import System.FilePath
 import System.Console.CmdArgs hiding (name)

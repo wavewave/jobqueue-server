@@ -1,12 +1,12 @@
 module Main where
 
 import System.Console.CmdArgs
-
-import YesodCRUD.Client.ProgType
-import YesodCRUD.Client.Command
+--
+import HEP.Automation.JobQueue.Client.ProgType
+import HEP.Automation.JobQueue.Client.Command
 
 main :: IO () 
 main = do 
-  putStrLn "yesodcrud-client"
+  putStrLn "jobqueue-client"
   param <- cmdArgs mode
   commandLineProcess param

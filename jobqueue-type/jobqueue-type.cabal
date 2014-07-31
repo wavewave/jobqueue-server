@@ -26,4 +26,4 @@ Library
                    text,
                    uuid
 
-  exposed-modules: YesodCRUD.Type
+  exposed-modules: HEP.Automation.JobQueue.Type
