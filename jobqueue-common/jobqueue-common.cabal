@@ -1,0 +1,38 @@
+Name:		jobqueue-common
+Version:	0.2.999
+Synopsis:	common library for job scheduler for event generation 
+Description: 	common library job scheduler for event generation
+License: 	BSD3
+License-file:	LICENSE
+Author:		Ian-Woo Kim
+Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
+Build-Type: 	Simple
+Cabal-Version:  >= 1.2
+
+
+Library
+  hs-source-dirs: src
+  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields 
+                -fno-warn-unused-do-bind -fno-warn-orphans
+  ghc-prof-options: -caf-all -auto-all
+  Build-Depends: base == 4.*, containers, 
+                 mtl == 2.*, 
+                 safecopy == 0.6.*, 
+                 acid-state == 0.6.*, 
+                 madgraph-auto >= 0.6, 
+                 madgraph-auto-model >= 0.2.999, 
+                 cereal >= 0.3.1.0, 
+                 aeson == 0.6.*,  
+                 attoparsec == 0.10.*, 
+                 vector, text == 0.11.*, 
+                 parsec == 3.*, 
+                 bytestring == 0.9.*, 
+                 unordered-containers == 0.2.*, 
+                 webdav-manager
+-- acid-state == 0.4.*, 
+  Exposed-Modules: HEP.Automation.JobQueue.Config 
+                   HEP.Automation.JobQueue.JobJson 
+                   HEP.Automation.JobQueue.JobQueue
+                   HEP.Automation.JobQueue.JobType 
+                   HEP.Automation.JobQueue.Server.Type
+
