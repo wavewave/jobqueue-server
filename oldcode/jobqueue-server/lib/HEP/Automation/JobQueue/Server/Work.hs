@@ -26,4 +26,4 @@ configServer = do
   oneGroupFieldInput "server" $ do 
     url <- oneFieldInput "mainURL"
     webdavurl <- oneFieldInput "webdavURL"
-    return (ServerConfig url (WebDAVServer webdavurl))
+    return (ServerConfig url (GlobalURL webdavurl))

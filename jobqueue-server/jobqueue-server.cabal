@@ -45,9 +45,9 @@ Library
                  text,
                  uuid,
                  wai-extra,
-                 wai > 3,
+                 wai < 3,
                  yesod-core,
-                 yesod-form,
+                 -- yesod-form,
                  yesod,
                  jobqueue-type
   Exposed-Modules: 

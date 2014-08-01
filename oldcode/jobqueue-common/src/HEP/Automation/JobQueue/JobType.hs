@@ -9,55 +9,45 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      : HEP.Automation.JobQueue.JobType 
--- Copyright   : (c) 2011, 2012 Ian-Woo Kim
+-- Copyright   : (c) 2011, 2012, 2014 Ian-Woo Kim
 --
 -- License     : BSD3
 -- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
 -- Stability   : experimental
 -- Portability : GHC
 --
-
-----------------------------------------------------
---
--- Module       : HEP.Automation.JobQueue.JobType
--- Copyright    : Ian-Woo Kim
--- License      : BSD3
 -- 
--- Maintainer   : Ian-Woo Kim <ianwookim@gmail.com>
--- Stability    : Experimental
--- Portability  : unknown 
--- 
--- Types for a event gen job V4 
+-- Types for a event gen job
 --
 ----------------------------------------------------
 
 module HEP.Automation.JobQueue.JobType where
 
 import Control.Applicative
-
-import HEP.Automation.MadGraph.Model
-import HEP.Automation.MadGraph.Machine
-import HEP.Automation.MadGraph.UserCut
-import HEP.Automation.MadGraph.SetupType
-
-import HEP.Automation.MadGraph.ModelParser
-
-import HEP.Storage.WebDAV.Type 
-
 import Data.SafeCopy
 import Data.Serialize.Get
-
 import Data.Typeable
 import Data.Data
+--
+import HEP.Automation.MadGraph.Card
+import HEP.Automation.MadGraph.Model
+import HEP.Automation.MadGraph.ModelParser
+import HEP.Automation.MadGraph.Run
+import HEP.Automation.MadGraph.SetupType
+import HEP.Automation.MadGraph.Type
+import HEP.Parser.LHE.Sanitizer.Type
+import HEP.Storage.WebDAV.Type 
+
 
 data EventSet = forall a. Model a => 
   EventSet {
     evset_psetup :: ProcessSetup a, 
-    evset_rsetup :: RunSetup a
+    evset_param  :: ModelParam a,
+    evset_rsetup :: RunSetup
   } 
 
 instance Show EventSet where
-  show (EventSet p r) = show p ++ "\n" ++ show r 
+  show (EventSet p param r) = show p ++ "\n" ++ show param ++ "\n" ++ show r 
 
 
 instance (Model a) => SafeCopy (ModelParam a) where
@@ -140,6 +130,7 @@ instance SafeCopy PYTHIAType where
                            0 -> return NoPYTHIA
                            1 -> return RunPYTHIA
 
+{-
 instance SafeCopy UserCutSet where
   putCopy NoUserCutDef = contain (safePut (0 :: Int)) 
   putCopy (UserCutDef uc) = contain $ do {safePut (1 :: Int); safePut uc }
@@ -148,12 +139,16 @@ instance SafeCopy UserCutSet where
                            0 -> return NoUserCutDef
                            1 -> do (uc :: UserCut) <- safeGet
                                    return (UserCutDef uc) 
+-}
 
+{-
 instance SafeCopy UserCut where
   putCopy (UserCut met etacutlep etcutlep etacutjet etcutjet) = contain $ do {
     safePut met; safePut etacutlep; safePut etcutlep; safePut etacutjet; safePut etcutjet }
   getCopy = contain $ UserCut <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+-}
 
+{-
 instance SafeCopy LHESanitizerType where 
   putCopy NoLHESanitize = contain (safePut (0 :: Int)) 
   putCopy (LHESanitize pids) = contain $ do {safePut (1 :: Int); safePut pids }
@@ -162,27 +157,39 @@ instance SafeCopy LHESanitizerType where
                            0 -> return NoLHESanitize
                            1 -> do (pids :: [Int]) <- safeGet
                                    return (LHESanitize pids) 
-
+-}
 
 instance SafeCopy PGSType where
-  putCopy NoPGS       = contain (safePut (0 :: Int))
-  putCopy RunPGS      = contain (safePut (1 :: Int))
-  putCopy RunPGSNoTau = contain (safePut (2 :: Int))
+  putCopy NoPGS                = contain (safePut (0 :: Int))
+  putCopy (RunPGS algotau)     = contain $ do 
+                                   safePut (1 :: Int)
+                                   safePut algotau
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of 
                            0 -> return NoPGS
-                           1 -> return RunPGS
-                           2 -> return RunPGSNoTau
+                           1 -> do algotau <- safeGet
+                                   return (RunPGS algotau)
+
+instance SafeCopy PGSTau where
+  putCopy NoTau   = contain (safePut (0 :: Int))
+  putCopy WithTau = contain (safePut (1 :: Int))
+  getCopy = contain $ do (x :: Int) <- safeGet 
+                         case x of 
+                           0 -> return NoTau
+                           1 -> return WithTau
+
+
 
 instance SafeCopy EventSet where
-  putCopy (EventSet p r) = 
-    let PS m pr pb wn = p 
-        RS mp ne ma rgr rgs mat cu py uc ls pg ja hu sn = r 
+  putCopy (EventSet p param r) = 
+    let PS m pr pb wn hs = p 
+        RS ne ma rgr rgs mat cu py ls pg hu sn = r 
     in  contain $ do safePut (modelName m)  
                      safePut pr  
                      safePut pb 
                      safePut wn
-                     safePut mp 
+                     safePut hs
+                     safePut param
                      safePut ne 
                      safePut ma 
                      safePut rgr 
@@ -190,10 +197,8 @@ instance SafeCopy EventSet where
                      safePut mat 
                      safePut cu 
                      safePut py 
-                     safePut uc 
                      safePut ls
                      safePut pg 
-                     safePut ja
                      safePut hu
                      safePut sn
   getCopy = contain $ do 
@@ -201,24 +206,37 @@ instance SafeCopy EventSet where
     pr <- safeGet  
     pb <- safeGet 
     wn <- safeGet 
+    hs <- safeGet
 
     let mkEventSet :: ModelBox -> Get EventSet
         mkEventSet (ModelBox mdl) = 
-            EventSet <$> getPSetup mdl <*> getRSetup mdl 
+            EventSet <$> getPSetup mdl <*> safeGet <*> getRSetup
 
         getPSetup :: (Model a) => a -> Get (ProcessSetup a)
-        getPSetup mdl = return (PS mdl pr pb wn)
+        getPSetup mdl = return (PS mdl pr pb wn hs)
 
-        getRSetup :: (Model a) => a -> Get (RunSetup a)
-        getRSetup _mdl = RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
-                            <*> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
-                            <*> safeGet <*> safeGet <*> safeGet <*> safeGet
+        getRSetup :: Get RunSetup
+        getRSetup = RS <$> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                       <*> safeGet <*> safeGet <*> safeGet <*> safeGet 
+                       <*> safeGet <*> safeGet <*> safeGet
 
     let maybemodelbox = modelParse modelstr 
     case maybemodelbox of 
       Just modelbox -> mkEventSet modelbox 
       Nothing -> error $ "modelname : " ++ modelstr ++ " is strange!"
  
+instance SafeCopy MGProcess where
+  getCopy = undefined 
+  putCopy = undefined 
+
+instance SafeCopy HashSalt where
+  getCopy = undefined 
+  putCopy = undefined
+
+instance SafeCopy SanitizeCmd where
+  getCopy = undefined
+  putCopy = undefined
+
 instance SafeCopy PGSJetAlgorithm where
   putCopy (Cone conesize) = contain $ do {safePut (1 :: Int); safePut conesize} 
   putCopy (KTJet conesize) = contain $ do {safePut (2 :: Int); safePut conesize}

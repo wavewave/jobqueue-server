@@ -17,7 +17,10 @@ import           Control.Monad.Loops
 import           Data.Aeson as A
 import           Data.Attoparsec.ByteString as P
 import qualified Data.ByteString as S
+import qualified Data.Conduit as C
+import qualified Data.Conduit.List as CL
 import           Data.Maybe
+import           Data.Monoid
 import qualified Data.Text as T
 import           Data.UUID
 import           Database.Persist
@@ -68,8 +71,9 @@ postCreateR :: Handler Value
 postCreateR = do
   dbfile <- server_db <$> getYesod
   wr <- reqWaiRequest <$> getRequest
-  bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr      
-                               return (if S.null bstr then Nothing else Just bstr)
+  bs' <- liftIO $ unfoldM $ do 
+           bstr <- mconcat <$> (requestBody wr C.$$ CL.consume)
+           return (if S.null bstr then Nothing else Just bstr)
   let bs = S.concat bs' 
   let parsed = parseOnly json bs 
   case parsed of 
@@ -114,8 +118,9 @@ putUUIDR :: UUID -> Handler Value
 putUUIDR idee = do 
   dbfile <- server_db <$> getYesod
   wr <- reqWaiRequest <$> getRequest
-  bs' <- liftIO $ unfoldM $ do bstr <- requestBody wr 
-                               return (if S.null bstr then Nothing else Just bstr)
+  bs' <- liftIO $ unfoldM $ do 
+           bstr <- mconcat <$> (requestBody wr C.$$ CL.consume)
+           return (if S.null bstr then Nothing else Just bstr)
   let bs = S.concat bs' 
   let parsed = parseOnly json bs 
   case parsed of 

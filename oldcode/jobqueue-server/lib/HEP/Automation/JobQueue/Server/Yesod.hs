@@ -76,30 +76,22 @@ mkYesod "JobQueueServer" [parseRoutes|
 instance Yesod JobQueueServer where
   approot = ApprootStatic ""
 
--- type Handler = GHandler JobQueueServer JobQueueServer 
-
 replaceLst :: (Eq a) => [(a,b)] -> [a] -> Maybe [b]
 replaceLst assoc lst = mapM (\x -> lookup x assoc) lst
 
-makeRepHtmlJsonFromHamletJson :: HtmlUrl (Route JobQueueServer) -> Value -> Handler RepHtmlJson
-makeRepHtmlJsonFromHamletJson hlet j = do
-  RepHtml rhtml <- hamletToRepHtml hlet 
-  RepJson json <- jsonToRepJson j 
-  return (RepHtmlJson rhtml json) 
+makeTypedContentFromHamletJson :: Html -> Value -> Handler TypedContent
+makeTypedContentFromHamletJson hlet j = 
+  selectRep $ do provideRep $ return hlet 
+                 provideRep $ return j 
 
 
-
-postQueueManyR :: Handler RepHtmlJson 
+postQueueManyR :: Handler TypedContent 
 postQueueManyR =do
   liftIO $ putStrLn "postQueueManyR called"  
   JobQueueServer acid _ <- getYesod  
-  -- _ <- getRequest
-  -- bs' <- lift CL.consume
-  -- let bs = S.concat bs' 
-  -- let parsed = (parseJson bs :: Either String ManyJobInfo)
   parsed <- parseJsonBody
   case parsed of 
-    Error str -> makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toJSON str)
+    Error str -> makeTypedContentFromHamletJson [shamlet| result not parsed well |] (toJSON str)
     Success idjinfos -> do  
       let uploadjob :: (Int,JobInfo) -> Handler (Int,Int)
           uploadjob (i,jinfo) = do 
@@ -122,7 +114,7 @@ postQueueManyR =do
       ur <- runMaybeT $ mapM (updatejob idsublst) idjinfos
       case ur of 
         Just _ -> do 
-          let hlet = [hamlet| 
+          let hlet = [shamlet| 
 <html>
   <head>
      <title> No HTML support
@@ -130,19 +122,19 @@ postQueueManyR =do
      <h1> This page does not have a HTML support 
 |] 
 
-          makeRepHtmlJsonFromHamletJson hlet $ toJSON ("Success" :: String)
+          makeTypedContentFromHamletJson hlet $ toJSON ("Success" :: String)
         Nothing -> do 
-          makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toJSON ("Failed" :: String))
+          makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON ("Failed" :: String))
 
 
 
 
-getHomeR :: Handler RepHtml 
+getHomeR :: Handler Html 
 getHomeR = do 
   liftIO $ putStrLn "getHomeR called"
-  hamletToRepHtml [hamlet|Hello World!|]
+  return [shamlet|Hello World!|]
 
-handleJobR :: JobNumber -> Handler RepHtmlJson
+handleJobR :: JobNumber -> Handler TypedContent
 handleJobR number = do 
   r <- getRequest
   let wr = reqWaiRequest r
@@ -152,18 +144,18 @@ handleJobR number = do
     "PUT" -> putJobR number 
     "DELETE" -> deleteJobR number
 
-deleteJobR :: Int -> Handler RepHtmlJson
+deleteJobR :: Int -> Handler TypedContent
 deleteJobR n = do 
   liftIO $ putStrLn "deleteJobR called"
   JobQueueServer acid _ <- getYesod
   r <- liftIO $ query acid (QueryJob n) 
   case r of 
-    Nothing -> makeRepHtmlJsonFromHamletJson [hamlet|this is html|] (toJSON ("No such job" :: String))
+    Nothing -> makeTypedContentFromHamletJson [shamlet|this is html|] (toJSON ("No such job" :: String))
     Just _  -> do
       liftIO $ update acid (DeleteJob n) >>= print  
-      makeRepHtmlJsonFromHamletJson [hamlet|success|] (toJSON ("Delete Succeed" :: String))
+      makeTypedContentFromHamletJson [shamlet|success|] (toJSON ("Delete Succeed" :: String))
 
-getJobR :: Int -> Handler RepHtmlJson
+getJobR :: Int -> Handler TypedContent
 getJobR n = do
   liftIO $ putStrLn "getJobR called"
   JobQueueServer acid sconf <- getYesod 
@@ -174,7 +166,7 @@ getJobR n = do
   let getJobhamlet = case rstr of 
         Left e -> do  
           let titlestr = "Job " ++ show n ++ " detail" 
-          [hamlet|
+          [shamlet|
              <html> 
                <head> 
                  <title>#{titlestr}
@@ -186,15 +178,17 @@ getJobR n = do
         Right j -> do 
           let jid = jobinfo_id j 
               jdet = jobinfo_detail j 
-              url = webdav_server_url . server_webdav $ sconf 
+              url = case server_webdav sconf of
+                      GlobalURL u -> u 
+                      LocalURL u' -> u'
               jremotedir = webdav_remotedir . jobdetail_remotedir $ jdet
               jstatus = show . jobinfo_status $ j 
               jpriority = show . jobinfo_priority $ j 
           case (jobdetail_evset jdet) of 
-            EventSet ps rs -> do 
-              let wname = makeRunName ps rs  
+            EventSet ps param rs -> do 
+              let wname = makeRunName ps param rs  
                   titlestr = "Job " ++ show n ++ " detail"  
-              [hamlet| 
+              [shamlet| 
                  <html> 
                    <head> 
                      <title>#{titlestr}
@@ -209,55 +203,45 @@ getJobR n = do
                          <a href=#{url}/#{jremotedir}> #{jremotedir} 
                        <li> job detail = #{show jdet} 
               |]       
-  makeRepHtmlJsonFromHamletJson getJobhamlet (toJSON rstr)
+  makeTypedContentFromHamletJson getJobhamlet (toJSON rstr)
 
-putJobR :: Int -> Handler RepHtmlJson
+putJobR :: Int -> Handler TypedContent
 putJobR n = do 
   liftIO $ putStrLn "putJobR called"
   JobQueueServer acid _ <- getYesod 
-  --  _ <- getRequest
-  --  bs' <- lift CL.consume
   parsed <- parseJsonBody 
-  -- let bs = S.concat bs' 
-  -- let parsed = (parseJson bs :: Either String JobInfo)
   case parsed of 
-    Error str -> makeRepHtmlJsonFromHamletJson [hamlet| this is not html |] (toJSON ("Fail" :: String))
+    Error str -> makeTypedContentFromHamletJson [shamlet| this is not html |] (toJSON ("Fail" :: String))
     Success result -> do 
       liftIO $ do 
-        -- putStrLn $ SC.unpack bs
         putStrLn $ show result
         update acid (UpdateJob n result) >>= print  
-      makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toJSON ("Success" :: String))
+      makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON ("Success" :: String))
 
 
 postQueueR :: Int -> Handler ()
 postQueueR prior = do 
   liftIO $ putStrLn "postQueueR called" 
   JobQueueServer acid _ <- getYesod  
-  -- _ <- getRequest
-  -- bs' <- lift CL.consume
-  -- let bs = S.concat bs' 
-  -- let parsed = (parseJson bs :: Either String JobDetail)
   parsed <- parseJsonBody 
   case parsed of 
     Error str -> liftIO $ putStrLn $ "result not parsed well : " ++ str
     Success result -> liftIO $ do 
-                     -- putStrLn $ SC.unpack bs
                      putStrLn $ show result
                      if prior == 0 
                        then update acid (AddJob result) >>= print  
                        else update acid (AddJobWithPriority result Urgent) >>= print 
 
-getQueueListR :: Handler RepHtmlJson
+getQueueListR :: Handler TypedContent
 getQueueListR = do 
   liftIO $ putStrLn "getQueueListR called" 
   JobQueueServer acid sconf <- getYesod
   let url = server_main sconf 
   r <- liftIO $ query acid QueryAll
   let result = snd r
-  makeRepHtmlJsonFromHamletJson (hamletListJobs url "all" result) (toJSON result)
+  makeTypedContentFromHamletJson (hamletListJobs url "all" result) (toJSON result)
 
-getQueueListUnassignedR :: Handler RepHtmlJson
+getQueueListUnassignedR :: Handler TypedContent
 getQueueListUnassignedR = do 
   liftIO $ putStrLn "getQueueListUnassignedR called"
   JobQueueServer acid sconf <- getYesod
@@ -265,9 +249,9 @@ getQueueListUnassignedR = do
   r <- liftIO $ query acid QueryAll
   let f j = jobinfo_status j == Unassigned
       result = filter f (snd r)
-  makeRepHtmlJsonFromHamletJson (hamletListJobs url "unassigned" result) (toJSON result)
+  makeTypedContentFromHamletJson (hamletListJobs url "unassigned" result) (toJSON result)
 
-getQueueListInprogressR :: Handler RepHtmlJson
+getQueueListInprogressR :: Handler TypedContent
 getQueueListInprogressR = do 
   liftIO $ putStrLn "getQueueListInprogressR called"
   JobQueueServer acid sconf <- getYesod
@@ -279,9 +263,9 @@ getQueueListInprogressR = do
               BeingTested _ -> True
               _ -> False 
       result = filter f (snd r)
-  makeRepHtmlJsonFromHamletJson (hamletListJobs url "inprogress" result) (toJSON result)
+  makeTypedContentFromHamletJson (hamletListJobs url "inprogress" result) (toJSON result)
 
-getQueueListFinishedR :: Handler RepHtmlJson
+getQueueListFinishedR :: Handler TypedContent
 getQueueListFinishedR = do 
   liftIO $ putStrLn "getQueueListFinishedR called"
   JobQueueServer acid sconf <- getYesod
@@ -291,32 +275,32 @@ getQueueListFinishedR = do
               Finished _ -> True 
               _ -> False
       result = filter f (snd r)
-  makeRepHtmlJsonFromHamletJson (hamletListJobs url "finished" result) (toJSON result)
+  makeTypedContentFromHamletJson (hamletListJobs url "finished" result) (toJSON result)
 
-hamletListJobs :: String -> String -> [JobInfo] -> HtmlUrl (Route JobQueueServer)
-hamletListJobs url str lst = do 
+hamletListJobs :: String -> String -> [JobInfo] -> Html
+hamletListJobs url str lst =  
   let jobname jdet = 
         case (jobdetail_evset jdet) of 
-          EventSet p r -> makeRunName p r
-  let jobtype :: JobInfo -> String 
+          EventSet p param r -> makeRunName p param r
+      jobtype :: JobInfo -> String 
       jobtype job = case jobinfo_detail job of 
                       EventGen _ _ -> "EventGen"
                       MathAnal _ _ _ -> "Mathematica"
-  let jobstatusshow :: JobInfo -> String 
+      jobstatusshow :: JobInfo -> String 
       jobstatusshow job = case jobinfo_status job of 
                             Unassigned -> "Unassigned"
                             Assigned _ -> "Assigned"
                             BeingCalculated _ -> "BeingCalculated"
                             BeingTested _ -> "BeingTested"
                             Finished _ -> "Finished"
-  let assignedclient :: JobInfo -> String 
+      assignedclient :: JobInfo -> String 
       assignedclient job = case jobinfo_status job of      
                              Unassigned -> "none"
                              Assigned c -> c
                              BeingCalculated c -> c
                              BeingTested c -> c 
                              Finished c -> c 
-  [hamlet| 
+  in [shamlet| 
     <h1> List #{str}
     <table> 
       <tr> 
@@ -341,17 +325,13 @@ hamletListJobs url str lst = do
 
 
 
-postAssignR :: Handler RepHtmlJson
+postAssignR :: Handler TypedContent
 postAssignR = do 
   liftIO $ putStrLn "assignR called"  
   JobQueueServer acid _ <- getYesod  
-  -- _ <- getRequest
-  -- bs' <- CL.consume
-  -- let bs = S.concat bs' 
-  -- let parsed = (parseJson bs :: Either String ClientConfiguration) 
   parsed <- parseJsonBody 
   case parsed of 
-    Error str -> makeRepHtmlJsonFromHamletJson [hamlet| result not parsed well |] (toJSON ("result not parsed well :" ++ str))
+    Error str -> makeTypedContentFromHamletJson [shamlet| result not parsed well |] (toJSON ("result not parsed well :" ++ str))
     Success cc -> do (_,listall) <- liftIO $ query acid QueryAll
                      let priorcomp j1 j2 
                            | jobinfo_priority j1 > jobinfo_priority j2 = LT
@@ -364,14 +344,16 @@ postAssignR = do
                      firstJobAssignment cc (unassigned,finished)
 
 
-getConfigWebDAVR :: Handler RepHtmlJson 
+getConfigWebDAVR :: Handler TypedContent 
 getConfigWebDAVR = do 
   JobQueueServer _ sconf  <- getYesod  
   let wdav = server_webdav sconf 
   liftIO $ putStrLn "getConfigWebDAVR called" 
-  let url = webdav_server_url wdav 
+  let url = case wdav of 
+              GlobalURL u -> u 
+              LocalURL u' -> u' 
   let configWebDAVhamlet = do 
-        [hamlet|
+        [shamlet|
 !!!
 <html>
   <head> 
@@ -382,7 +364,7 @@ getConfigWebDAVR = do
     <p>
       <a href=#{url}>  #{url} 
 |]
-  makeRepHtmlJsonFromHamletJson configWebDAVhamlet (G.toJSON wdav)  
+  makeTypedContentFromHamletJson configWebDAVhamlet (toJSON wdav)  
               
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 
@@ -393,19 +375,17 @@ jsonJobInfoQueue (lastid,jobinfos) =
 
 
 firstJobAssignment :: ClientConfiguration -> ([JobInfo],[JobInfo]) 
-                   -> Handler RepHtmlJson  
-
---  -> GHandler JobQueueServer JobQueueServer (C.Sink SC.ByteString IO) RepHtmlJson 
+                   -> Handler TypedContent  
 firstJobAssignment cc (unassigned,finished) = do 
   let r = findFirstJob cc (unassigned,finished)
   case r of 
     Nothing -> do 
       liftIO $ putStrLn "No Compatible Job!"
-      makeRepHtmlJsonFromHamletJson [hamlet| no such job |] (toJSON (Left "no compatible job" :: Either String JobInfo)) 
+      makeTypedContentFromHamletJson [shamlet| no such job |] (toJSON (Left "no compatible job" :: Either String JobInfo)) 
     Just assigned -> do 
       liftIO $ putStrLn "Job Found!"
       liftIO $ putStrLn (show assigned) 
-      makeRepHtmlJsonFromHamletJson [hamlet| this is html found |] (toJSON (Right assigned :: Either String JobInfo))
+      makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON (Right assigned :: Either String JobInfo))
 
 
 
