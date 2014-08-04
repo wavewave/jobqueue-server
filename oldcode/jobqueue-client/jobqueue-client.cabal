@@ -14,22 +14,25 @@ Executable jobclient
   Main-is: jobclient.hs
   hs-source-dirs: exe
   Build-Depends: base == 4.*, 
-                 containers, 
-                 mtl, 
-                 safecopy, 
+                 -- 
                  acid-state,
+                 aeson, 
                  attoparsec,
-                 jobqueue-common, 
+                 bytestring, 
+                 cmdargs, 
+                 containers, 
                  hslogger,
-                 parsec, 
-                 pipeline, 
                  http-types, 
                  http-conduit, 
                  madgraph-auto, 
-                 bytestring, 
-                 aeson, 
-                 cmdargs, 
+                 mtl, 
+                 jobqueue-common, 
+                 parsec, 
+                 pipeline-eventgen, 
+                 safecopy,
+                 -- 
                  jobqueue-client
+
 
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
@@ -40,26 +43,27 @@ Library
   hs-source-dirs: lib
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
-  Build-Depends: base == 4.*, 
-                 containers, 
-                 mtl, 
-                 safecopy, 
-                 acid-state, 
-                 hslogger,
-                 jobqueue-common, 
-                 attoparsec,
-                 parsec, 
-                 pipeline, 
-                 http-types, 
-                 http-conduit, 
-                 madgraph-auto, 
-                 bytestring,  
-                 aeson, 
-                 cmdargs, 
-                 webdav-manager, 
-                 filepath, 
-                 hslogger, 
-                 text
+  Build-Depends:   base == 4.*, 
+                   -- 
+                   acid-state, 
+                   aeson, 
+                   attoparsec,
+                   bytestring,  
+                   cmdargs, 
+                   containers, 
+                   filepath, 
+                   hslogger,
+                   http-types, 
+                   http-conduit, 
+                   jobqueue-common, 
+                   madgraph-auto, 
+                   mtl, 
+                   parsec, 
+                   pipeline-eventgen, 
+                   safecopy, 
+                   text,
+                   webdav-manager
+
   Exposed-Modules: 
                    HEP.Automation.JobQueue.Client.Type 
                    HEP.Automation.JobQueue.Client.Job

@@ -158,7 +158,7 @@ changeStatus url jinfo status = do
 
 -- |
 
-getWebDAVInfo :: Url -> IO (Result WebDAVServer)
+getWebDAVInfo :: Url -> IO (Result URLtype)
 getWebDAVInfo url = getJsonFromServer url "config/webdav" 
 
 {-

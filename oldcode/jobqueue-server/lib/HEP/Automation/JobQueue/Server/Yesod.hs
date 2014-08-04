@@ -1,8 +1,13 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes, DeriveDataTypeable, 
-             MultiParamTypeClasses, TypeFamilies, FlexibleContexts,  
-             FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-} 
 
 ----------------------------------------------------
 --
@@ -21,37 +26,29 @@
 
 module HEP.Automation.JobQueue.Server.Yesod where 
 
-import Yesod hiding (update)
-
-import Network.Wai
-
-import Control.Monad 
-import Control.Monad.Trans.Maybe 
-
-import qualified Data.Conduit as C
-import qualified Data.Conduit.List as CL
-import qualified Data.ByteString as S
-import qualified Data.ByteString.Char8 as SC
-
+import           Control.Monad 
+import           Control.Monad.Trans.Maybe 
+import           Data.Acid 
 import           Data.Aeson.Types hiding (parse)
 import qualified Data.Aeson.Generic as G
-
+import qualified Data.ByteString as S
+import qualified Data.ByteString.Char8 as SC
+import qualified Data.Conduit as C
+import qualified Data.Conduit.List as CL
+import qualified Data.HashMap.Strict as M
+import           Data.List 
+import           Network.Wai
+import           Yesod hiding (update)
+-- 
 import HEP.Automation.MadGraph.Util 
-
 import HEP.Automation.JobQueue.JobType 
 import HEP.Automation.JobQueue.JobJson
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config
-
-import qualified Data.HashMap.Strict as M
-import Data.List 
-
-import Data.Acid 
-
+import HEP.Storage.WebDAV.Type
+--
 import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Server.JobAssign
-
-import HEP.Storage.WebDAV.Type
 
 
 data JobQueueServer = JobQueueServer { 

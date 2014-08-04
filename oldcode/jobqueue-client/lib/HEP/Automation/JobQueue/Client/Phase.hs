@@ -35,14 +35,13 @@ module HEP.Automation.JobQueue.Client.Phase
 
 import Control.Concurrent (threadDelay)
 
-import HEP.Automation.Pipeline.Config
-import HEP.Automation.Pipeline.Job
-import HEP.Automation.Pipeline.Job.Match
-import HEP.Automation.Pipeline.Job.DummyTest
+-- import HEP.Automation.Pipeline.Config
+-- import HEP.Automation.Pipeline.Job
+-- import HEP.Automation.Pipeline.Job.Match
+-- import HEP.Automation.Pipeline.Job.DummyTest
 
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config 
--- import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Client.Job
 
 import Data.Aeson.Types 
