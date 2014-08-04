@@ -28,10 +28,11 @@ import Control.Monad.Trans
 
 type Url = String 
 
-jobqueueGet :: Url -> JobNumber -> IO (Result JobInfo) 
+jobqueueGet :: Url -> JobNumber -> IO (Result (Either String JobInfo)) 
 jobqueueGet url jid = do 
   putStrLn "get" 
   r <- getJsonFromServer url ("job/" ++ show jid)
+  print r 
   return r 
 
 -- |   
@@ -182,7 +183,10 @@ getJsonFromServer url api = do
         } 
     r <- httpLbs requestgetjson manager 
     if responseStatus r == ok200 
-      then (return . parseJson . SC.concat . C.toChunks . responseBody) r
+      then do
+        let jsonstr = (C.toStrict . responseBody) r
+        liftIO $ SC.putStrLn jsonstr
+        (return . parseJson) jsonstr 
       else fail $ url ++ " is not working"
 
 -- | 

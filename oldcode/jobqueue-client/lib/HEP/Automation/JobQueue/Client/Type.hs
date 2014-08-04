@@ -4,8 +4,8 @@ module HEP.Automation.JobQueue.Client.Type where
 
 import System.Console.CmdArgs
 
-data JobClient = Get    { jobid :: Int, config :: FilePath }
-               | List   { queuetyp :: String, config :: FilePath }
+data JobClient = Get    { jobid :: Int, url  :: String } -- config :: FilePath }
+               | List   { queuetyp :: String, url :: String } --  config :: FilePath }
                | Start  { config :: FilePath } 
                | StartTest { config :: FilePath }
                | Revert { jobid :: Int, config :: FilePath } 
@@ -15,10 +15,11 @@ data JobClient = Get    { jobid :: Int, config :: FilePath }
 
 get :: JobClient 
 get = Get { jobid = 0 &= typ "JOBID" &= argPos 0 
-          , config = "test.conf" }
+          , url = def &= argPos 1}
+
 list :: JobClient 
 list = List { queuetyp = "all" &= typ "QUEUETYP" &= argPos 0 
-            , config = "test.conf" } 
+            , url = def &= argPos 1} 
 start :: JobClient 
 start = Start { config = "test.conf" }
 

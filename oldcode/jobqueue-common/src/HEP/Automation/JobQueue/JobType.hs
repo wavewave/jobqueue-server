@@ -37,7 +37,7 @@ import HEP.Automation.MadGraph.SetupType
 import HEP.Automation.MadGraph.Type
 import HEP.Parser.LHE.Sanitizer.Type
 import HEP.Storage.WebDAV.Type 
-
+ 
 
 data EventSet = forall a. Model a => 
   EventSet {
@@ -130,34 +130,6 @@ instance SafeCopy PYTHIAType where
                            0 -> return NoPYTHIA
                            1 -> return RunPYTHIA
 
-{-
-instance SafeCopy UserCutSet where
-  putCopy NoUserCutDef = contain (safePut (0 :: Int)) 
-  putCopy (UserCutDef uc) = contain $ do {safePut (1 :: Int); safePut uc }
-  getCopy = contain $ do (x :: Int) <- safeGet 
-                         case x of 
-                           0 -> return NoUserCutDef
-                           1 -> do (uc :: UserCut) <- safeGet
-                                   return (UserCutDef uc) 
--}
-
-{-
-instance SafeCopy UserCut where
-  putCopy (UserCut met etacutlep etcutlep etacutjet etcutjet) = contain $ do {
-    safePut met; safePut etacutlep; safePut etcutlep; safePut etacutjet; safePut etcutjet }
-  getCopy = contain $ UserCut <$> safeGet <*> safeGet <*> safeGet <*> safeGet <*> safeGet
--}
-
-{-
-instance SafeCopy LHESanitizerType where 
-  putCopy NoLHESanitize = contain (safePut (0 :: Int)) 
-  putCopy (LHESanitize pids) = contain $ do {safePut (1 :: Int); safePut pids }
-  getCopy = contain $ do (x :: Int) <- safeGet 
-                         case x of 
-                           0 -> return NoLHESanitize
-                           1 -> do (pids :: [Int]) <- safeGet
-                                   return (LHESanitize pids) 
--}
 
 instance SafeCopy PGSType where
   putCopy NoPGS                = contain (safePut (0 :: Int))
@@ -226,16 +198,24 @@ instance SafeCopy EventSet where
       Nothing -> error $ "modelname : " ++ modelstr ++ " is strange!"
  
 instance SafeCopy MGProcess where
-  getCopy = undefined 
-  putCopy = undefined 
+  putCopy p = contain (safePut (mgp_definelines p) >> safePut (mgp_processes p))
+  getCopy = contain $ MGProc <$> safeGet <*> safeGet 
 
 instance SafeCopy HashSalt where
-  getCopy = undefined 
-  putCopy = undefined
+  putCopy s = contain (safePut (unHashSalt s))
+  getCopy = contain $ HashSalt <$> safeGet
 
 instance SafeCopy SanitizeCmd where
-  getCopy = undefined
-  putCopy = undefined
+  putCopy (Eliminate xs) = contain (safePut (1 :: Int) >> safePut xs)
+  putCopy (Replace xs)   = contain (safePut (2 :: Int) >> safePut xs)
+  putCopy Shuffle        = contain (safePut (3 :: Int))
+  putCopy Blobize        = contain (safePut (4 :: Int))
+  getCopy = contain $ do (x :: Int) <- safeGet
+                         case x of 
+                           1 -> Eliminate <$> safeGet
+                           2 -> Replace <$> safeGet
+                           3 -> return Shuffle
+                           4 -> return Blobize
 
 instance SafeCopy PGSJetAlgorithm where
   putCopy (Cone conesize) = contain $ do {safePut (1 :: Int); safePut conesize} 

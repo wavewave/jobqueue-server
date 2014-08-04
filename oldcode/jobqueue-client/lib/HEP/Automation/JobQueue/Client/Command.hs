@@ -17,12 +17,12 @@ import System.Log.Formatter
 import System.IO
 
 commandLineProcess :: JobClient -> IO () 
-commandLineProcess (Get jid conf) = do 
-  putStrLn "get called"
-  -- readConfigFile conf >>= flip startGetPhase jid  
-commandLineProcess (List qtyp conf) = do 
-  putStrLn "list called"
-  -- readConfigFile conf >>= flip startListPhase qtyp
+commandLineProcess (Get jid url) = do 
+    putStrLn "get called"
+    startGetPhase (URL url) jid 
+commandLineProcess (List qtyp url) = do 
+    putStrLn "list called"
+    startListPhase (URL url) qtyp 
 commandLineProcess (Start conf) = do
   putStrLn "start called" 
   startLog MadGraphLog.defaultLogChan

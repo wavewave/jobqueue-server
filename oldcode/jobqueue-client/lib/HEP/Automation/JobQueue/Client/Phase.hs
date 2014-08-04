@@ -55,6 +55,26 @@ import HEP.Automation.JobQueue.Client.Job
 import Data.Aeson.Types 
 import Control.Monad
 
+
+newtype URL = URL {unURL :: String}
+
+-- |
+startListPhase :: URL -> String -> IO () 
+startListPhase (URL url) qtyp = do
+  -- let url = nc_jobqueueurl . lc_networkConfiguration $ lc
+  case qtyp of 
+    "all"        -> jobqueueList url
+    "unassigned" -> jobqueueUnassigned url
+    "inprogress" -> jobqueueInprogress url
+    "finished"   -> jobqueueFinished url
+    _ -> putStrLn "No such option"
+
+
+startGetPhase :: URL -> Int -> IO () 
+startGetPhase (URL url) jid = do
+  jobqueueGet url jid >>= print
+  return ()   
+
 {- 
 startWaitPhase :: LocalConfiguration -> Int -> Int -> IO () 
 startWaitPhase lc n assignfailure = do 
@@ -126,23 +146,9 @@ startJobPhase lc jinfo n af = do
 
 -- |
 
-startGetPhase :: LocalConfiguration -> Int -> IO () 
-startGetPhase lc jid = do
-  let url = nc_jobqueueurl . lc_networkConfiguration $ lc
-  jobqueueGet url jid
-  return ()   
 
 -- |
 
-startListPhase :: LocalConfiguration -> String -> IO () 
-startListPhase lc qtyp = do
-  let url = nc_jobqueueurl . lc_networkConfiguration $ lc
-  case qtyp of 
-    "all"        -> jobqueueList url
-    "unassigned" -> jobqueueUnassigned url
-    "inprogress" -> jobqueueInprogress url
-    "finished"   -> jobqueueFinished url
-    _ -> putStrLn "No such option"
 
 -- | 
 
