@@ -15,7 +15,7 @@ are a driver procedure for each phase.
 -}
 
 module HEP.Automation.JobQueue.Client.Phase 
-        ( -- * Get command 
+{-         ( -- * Get command 
           startGetPhase
           -- * List command
         , startListPhase
@@ -31,7 +31,8 @@ module HEP.Automation.JobQueue.Client.Phase
           -- * For testing 
         , startWaitTestPhase
         , startJobTestPhase
-        ) where
+        )  -}
+where
 
 import Control.Concurrent (threadDelay)
 
@@ -40,6 +41,13 @@ import Control.Concurrent (threadDelay)
 -- import HEP.Automation.Pipeline.Job.Match
 -- import HEP.Automation.Pipeline.Job.DummyTest
 
+import HEP.Automation.EventGeneration.Config
+import HEP.Automation.EventGeneration.Deploy
+import HEP.Automation.EventGeneration.Job
+import HEP.Automation.EventGeneration.Type
+import HEP.Automation.EventGeneration.Util
+import HEP.Automation.EventGeneration.Work
+--
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config 
 import HEP.Automation.JobQueue.Client.Job
@@ -47,6 +55,7 @@ import HEP.Automation.JobQueue.Client.Job
 import Data.Aeson.Types 
 import Control.Monad
 
+{- 
 startWaitPhase :: LocalConfiguration -> Int -> Int -> IO () 
 startWaitPhase lc n assignfailure = do 
   putStrLn "starting Wait Phase"
@@ -246,3 +255,4 @@ startJobTestPhase lc jinfo n = do
                           threadDelay 10000000
                           return ()
   startWaitTestPhase lc n 
+-}
