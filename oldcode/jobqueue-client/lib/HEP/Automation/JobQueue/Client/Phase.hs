@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {- |
 Module       : HEP.Automation.JobQueue.Client.Phase
 Copyright    : Ian-Woo Kim
@@ -61,19 +63,30 @@ newtype URL = URL {unURL :: String}
 -- |
 startListPhase :: URL -> String -> IO () 
 startListPhase (URL url) qtyp = do
-  -- let url = nc_jobqueueurl . lc_networkConfiguration $ lc
-  case qtyp of 
-    "all"        -> jobqueueList url
-    "unassigned" -> jobqueueUnassigned url
-    "inprogress" -> jobqueueInprogress url
-    "finished"   -> jobqueueFinished url
-    _ -> putStrLn "No such option"
+  result :: Either String [JobInfo] 
+    <- case qtyp of 
+         "all"        -> getJsonFromServer url "queuelist" 
+         "unassigned" -> getJsonFromServer url "queuelist/unassigned" 
+         "inprogress" -> getJsonFromServer url "queuelist/inprogress" 
+         "finished"   -> getJsonFromServer url "queuelist/finished" 
+         _ -> return (Left "No such option")
+  print result
 
-
+-- |
 startGetPhase :: URL -> Int -> IO () 
-startGetPhase (URL url) jid = do
-  jobqueueGet url jid >>= print
-  return ()   
+startGetPhase (URL url) jid = jobqueueGet url jid >>= print
+
+-- |
+startDeletePhase :: URL -> Int -> IO () 
+startDeletePhase (URL url) jid = do
+  j <- jobqueueGet url jid
+  case j of 
+    Left err -> putStrLn $ "error : " ++ err
+    Right jobinfo -> do putStrLn $ " job is " ++ show jobinfo
+                        jobqueueDelete url jid
+                        return ()
+
+
 
 {- 
 startWaitPhase :: LocalConfiguration -> Int -> Int -> IO () 
@@ -181,19 +194,6 @@ startFinishPhase lc jid = do
       return ()
 
 -- | 
-
-startDeletePhase :: LocalConfiguration -> Int -> IO () 
-startDeletePhase lc jid = do
-  let url = nc_jobqueueurl . lc_networkConfiguration $ lc
-  j <- jobqueueGet url jid
-  case j of 
-    Error errmsg -> do
-      putStrLn "No such job!"
-      putStrLn $ "error : " ++ errmsg
-    Success jobinfo -> do 
-      putStrLn $ " job is " ++ show jobinfo
-      jobqueueDelete url jid
-      return ()
 
 
 ----------

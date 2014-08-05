@@ -2,44 +2,44 @@
 
 module HEP.Automation.JobQueue.Client.Job where
 
-import System.FilePath
 
+import Control.Applicative
 import Control.Monad
-
-import Network.HTTP.Types hiding (statusCode)
-import Network.HTTP.Conduit
-import qualified Data.ByteString.Lazy.Char8 as C
-import qualified Data.ByteString.Char8 as SC
-
-import HEP.Automation.JobQueue.Config
-import HEP.Automation.JobQueue.JobQueue
-import HEP.Automation.JobQueue.JobJson
-
-import HEP.Storage.WebDAV.Type
-
--- import Data.Aeson.Generic hiding (encode)
+import Control.Monad.Trans
 import Data.Aeson.Types
 import Data.Aeson.Encode
 import Data.Aeson.Parser
 import qualified Data.Attoparsec as P
+import qualified Data.ByteString.Lazy.Char8 as C
+import qualified Data.ByteString.Char8 as SC
 import Data.Text.Encoding 
+import Network.HTTP.Types hiding (statusCode)
+import Network.HTTP.Conduit
+import System.FilePath
+--
+import HEP.Automation.JobQueue.Config
+import HEP.Automation.JobQueue.JobQueue
+import HEP.Automation.JobQueue.JobJson
+import HEP.Storage.WebDAV.Type
+--
 
-import Control.Monad.Trans
 
 type Url = String 
 
-jobqueueGet :: Url -> JobNumber -> IO (Result (Either String JobInfo)) 
+jobqueueGet :: Url -> JobNumber -> IO (Either String JobInfo)
 jobqueueGet url jid = do 
-  putStrLn "get" 
-  r <- getJsonFromServer url ("job/" ++ show jid)
-  print r 
-  return r 
+  -- putStrLn "get" 
+  join <$> getJsonFromServer url ("job/" ++ show jid) 
+{-   case  r of 
+    Success e -> return e
+    Error err -> return (Left err)  
+-}
 
 -- |   
 
 jobqueuePut :: Url -> JobInfo -> IO (Maybe JobInfo)
 jobqueuePut url jinfo = do 
-  putStrLn "put" 
+  -- putStrLn "put" 
   withManager $ \manager -> do
     requesttemp <- parseUrl (url </> "job" 
                                  </> show (jobinfo_id jinfo))
@@ -55,10 +55,9 @@ jobqueuePut url jinfo = do
     return (Just jinfo)
 
 -- | 
-
 jobqueueDelete :: Url -> Int -> IO ()
 jobqueueDelete url jid = do 
-  putStrLn "delete" 
+  -- putStrLn "delete" 
   withManager $ \manager -> do
     requesttemp <- parseUrl (url </> "job" </> show jid )
     let requestdel = requesttemp { 
@@ -69,6 +68,7 @@ jobqueueDelete url jid = do
     r <- httpLbs requestdel manager 
     liftIO (putStrLn $ show r )
 
+{-
 jobqueueList :: Url -> IO () 
 jobqueueList url = do 
   putStrLn "list"
@@ -79,33 +79,37 @@ jobqueueList url = do
         }
     r <- httpLbs requestgetjson manager 
     liftIO (putStrLn $ show r)
+-}
 
 
+{- 
 -- | 
-
 jobqueueUnassigned :: Url -> IO ()
 jobqueueUnassigned = jobqueueStatus "queuelist/unassigned"
 
 -- | 
-
 jobqueueInprogress :: Url -> IO ()
 jobqueueInprogress = jobqueueStatus "queuelist/inprogress"
 
 -- | 
-
 jobqueueFinished :: Url -> IO ()
 jobqueueFinished = jobqueueStatus "queuelist/finished"
 
--- | 
+-}
 
+{- 
+-- | 
 jobqueueStatus :: String -> Url -> IO ()
 jobqueueStatus cmd url = do 
+  getJsonFromServer url cmd
   putStrLn cmd
-  (r :: Result [JobInfo]) <- getJsonFromServer url cmd
+  (r :: Result [JobInfo]) <- 
   case r of 
     Error err -> putStrLn err
     Success jinfos -> forM_ jinfos $ \x -> do putStrLn "-------------" 
                                               putStrLn (show x)
+-}
+
 
 -- | 
 
@@ -159,7 +163,7 @@ changeStatus url jinfo status = do
 
 -- |
 
-getWebDAVInfo :: Url -> IO (Result URLtype)
+getWebDAVInfo :: Url -> IO (Either String URLtype)
 getWebDAVInfo url = getJsonFromServer url "config/webdav" 
 
 {-
@@ -173,8 +177,7 @@ getWebDAVInfo url = getJsonFromServer url "config/webdav"
 -}
 
 -- | 
-
-getJsonFromServer :: (FromJSON a) => Url -> String -> IO (Result a)
+getJsonFromServer :: (FromJSON a) => Url -> String -> IO (Either String a)
 getJsonFromServer url api = do 
   withManager $ \manager -> do
     requestget <- parseUrl (url </> api)
@@ -185,12 +188,12 @@ getJsonFromServer url api = do
     if responseStatus r == ok200 
       then do
         let jsonstr = (C.toStrict . responseBody) r
-        liftIO $ SC.putStrLn jsonstr
-        (return . parseJson) jsonstr 
-      else fail $ url ++ " is not working"
+        case parseJson jsonstr of
+          Success result -> return (Right result)
+          Error err -> return (Left err)
+      else return (Left (url ++ " is not working"))
 
 -- | 
- 
 parseJson :: (FromJSON a) => SC.ByteString -> Result a
 parseJson bs =
   let resultjson = P.parse json bs
