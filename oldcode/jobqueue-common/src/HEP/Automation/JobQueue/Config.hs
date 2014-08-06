@@ -10,7 +10,7 @@
 -- Portability : GHC
 --
 module HEP.Automation.JobQueue.Config where
-
+ 
 data ClientConfiguration = ClientConfiguration { 
   computerName :: String, 
   haveMathematica :: Bool,

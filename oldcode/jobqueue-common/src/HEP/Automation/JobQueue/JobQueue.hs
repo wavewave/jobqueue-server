@@ -14,19 +14,6 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
-
-----------------------------------------------------
---
--- Module       : HEP.Automation.JobQueue.JobQueue
--- Copyright    : Ian-Woo Kim
--- License      : BSD3
--- 
--- Maintainer   : Ian-Woo Kim <ianwookim@gmail.com>
--- Stability    : Experimental
--- Portability  : unknown 
--- 
--- JobQueue Type  V4
---
 ----------------------------------------------------
 
 module HEP.Automation.JobQueue.JobQueue where
@@ -34,21 +21,16 @@ module HEP.Automation.JobQueue.JobQueue where
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Reader
-
-import Data.Typeable
-import Data.Data
-
 import Data.Acid
-
-
+import Data.Data
+import qualified Data.IntMap as M
+import Data.SafeCopy
+import Data.Typeable
+-- 
 import HEP.Automation.JobQueue.JobType
 import HEP.Storage.WebDAV.Type
-
+-- 
 import Prelude hiding (length)
--- import Data.Sequence
-import Data.SafeCopy
-
-import qualified Data.IntMap as M
 
 type JobNumber = Int
 

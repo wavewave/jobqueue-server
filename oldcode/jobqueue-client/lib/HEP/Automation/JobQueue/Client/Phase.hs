@@ -58,11 +58,9 @@ import Data.Aeson.Types
 import Control.Monad
 
 
-newtype URL = URL {unURL :: String}
-
 -- |
 startListPhase :: URL -> String -> IO () 
-startListPhase (URL url) qtyp = do
+startListPhase url qtyp = do
   result :: Either String [JobInfo] 
     <- case qtyp of 
          "all"        -> getJsonFromServer url "queuelist" 
@@ -74,11 +72,11 @@ startListPhase (URL url) qtyp = do
 
 -- |
 startGetPhase :: URL -> Int -> IO () 
-startGetPhase (URL url) jid = jobqueueGet url jid >>= print
+startGetPhase url jid = jobqueueGet url jid >>= print
 
 -- |
 startDeletePhase :: URL -> Int -> IO () 
-startDeletePhase (URL url) jid = do
+startDeletePhase url jid = do
   j <- jobqueueGet url jid
   case j of 
     Left err -> putStrLn $ "error : " ++ err
@@ -87,10 +85,9 @@ startDeletePhase (URL url) jid = do
                         return ()
 
 
-
-{- 
-startWaitPhase :: LocalConfiguration -> Int -> Int -> IO () 
-startWaitPhase lc n assignfailure = do 
+{-
+startWaitPhase :: URL -> Int -> Int -> IO () 
+startWaitPhase (URL url) n assignfailure = do 
   putStrLn "starting Wait Phase"
   when (assignfailure < 0) $ do 
       putStrLn "too many assign failure. kill the process" 
@@ -101,7 +98,6 @@ startWaitPhase lc n assignfailure = do
               threadDelay (60*1000000)
               return 3 
             else return n
-  let url = nc_jobqueueurl . lc_networkConfiguration $ lc
   r <- jobqueueAssign url (lc_clientConfiguration lc) 
   case r of 
     Just jinfo -> startJobPhase lc jinfo newn 10
@@ -110,6 +106,10 @@ startWaitPhase lc n assignfailure = do
       putStrLn ("remaining chance : " ++ show assignfailure)
       threadDelay . (*1000000) . nc_polling . lc_networkConfiguration $ lc
       startWaitPhase lc newn (assignfailure-1)
+-}
+
+
+{- 
 
 startJobPhase :: LocalConfiguration -> JobInfo -> Int -> Int -> IO ()
 startJobPhase lc jinfo n af = do 

@@ -346,6 +346,7 @@ instance FromJSON JobInfo where
             <*> lookupfunc "dependency" m 
   parseJSON _ = fail "JobInfo not parsed"
     
+
 instance ToJSON ClientConfiguration where
   toJSON (ClientConfiguration computer math pbs montecarlo datasetdir) = 
       object [ "computer"    .= toJSON computer 
@@ -363,6 +364,7 @@ instance FromJSON ClientConfiguration where
       <*> lookupfunc "montecarlo" m
       <*> lookupfunc "datasetDir" m
   parseJSON _ = fail "ClientConfiguration not parsed"
+
 
 instance ToJSON URLtype where
   toJSON (LocalURL fp)  = object [ "Type" .= String "LocalURL" 

@@ -17,29 +17,29 @@ import Network.HTTP.Types hiding (statusCode)
 import Network.HTTP.Conduit
 import System.FilePath
 --
+import HEP.Automation.EventGeneration.Config
 import HEP.Automation.JobQueue.Config
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.JobJson
 import HEP.Storage.WebDAV.Type
 --
 
+data SendMethod = MethodPUT | MethodPOST 
+                deriving (Show,Eq,Ord)
 
-type Url = String 
+newtype URL = URL {unURL :: String}
 
-jobqueueGet :: Url -> JobNumber -> IO (Either String JobInfo)
-jobqueueGet url jid = do 
-  -- putStrLn "get" 
-  join <$> getJsonFromServer url ("job/" ++ show jid) 
-{-   case  r of 
-    Success e -> return e
-    Error err -> return (Left err)  
--}
+-- type (URL Url) = String 
 
--- |   
+-- | get job by number
+jobqueueGet :: URL -> JobNumber -> IO (Either String JobInfo)
+jobqueueGet url jid = join <$> getJsonFromServer url ("job/" ++ show jid) 
 
-jobqueuePut :: Url -> JobInfo -> IO (Maybe JobInfo)
-jobqueuePut url jinfo = do 
-  -- putStrLn "put" 
+-- | put new content to job
+jobqueuePut :: URL -> JobInfo -> IO (Either String JobInfo)
+jobqueuePut url jinfo = join <$> sendJson MethodPUT url ("job" </> show (jobinfo_id jinfo)) jinfo
+
+{-  do 
   withManager $ \manager -> do
     requesttemp <- parseUrl (url </> "job" 
                                  </> show (jobinfo_id jinfo))
@@ -53,11 +53,11 @@ jobqueuePut url jinfo = do
     r <- httpLbs requestput manager 
     liftIO ( putStrLn $ show r )
     return (Just jinfo)
+-}
 
--- | 
-jobqueueDelete :: Url -> Int -> IO ()
-jobqueueDelete url jid = do 
-  -- putStrLn "delete" 
+-- | delete job
+jobqueueDelete :: URL -> Int -> IO ()
+jobqueueDelete (URL url) jid = do 
   withManager $ \manager -> do
     requesttemp <- parseUrl (url </> "job" </> show jid )
     let requestdel = requesttemp { 
@@ -68,102 +68,30 @@ jobqueueDelete url jid = do
     r <- httpLbs requestdel manager 
     liftIO (putStrLn $ show r )
 
-{-
-jobqueueList :: Url -> IO () 
-jobqueueList url = do 
-  putStrLn "list"
-  withManager $ \manager -> do
-    requestget <- parseUrl (url </> "queuelist")
-    let requestgetjson = requestget { 
-          requestHeaders = [ ("Accept", "application/json; charset=utf-8") ] 
-        }
-    r <- httpLbs requestgetjson manager 
-    liftIO (putStrLn $ show r)
--}
-
-
-{- 
--- | 
-jobqueueUnassigned :: Url -> IO ()
-jobqueueUnassigned = jobqueueStatus "queuelist/unassigned"
+-- | assign a job to the client
+jobqueueAssign :: URL -> ClientConfiguration -> IO (Either String JobInfo) 
+jobqueueAssign url cc  = join <$> sendJson MethodPOST url "assign" cc
 
 -- | 
-jobqueueInprogress :: Url -> IO ()
-jobqueueInprogress = jobqueueStatus "queuelist/inprogress"
+confirmAssignment :: URL -> String -> JobInfo -> IO (Either String JobInfo)
+confirmAssignment url cname jinfo = case jobinfo_status jinfo of 
+                                      Unassigned -> jobqueuePut url (jinfo { jobinfo_status = Assigned cname })
+                                      _ -> return (Left "job is already assigned to somebody")
 
 -- | 
-jobqueueFinished :: Url -> IO ()
-jobqueueFinished = jobqueueStatus "queuelist/finished"
-
--}
-
-{- 
--- | 
-jobqueueStatus :: String -> Url -> IO ()
-jobqueueStatus cmd url = do 
-  getJsonFromServer url cmd
-  putStrLn cmd
-  (r :: Result [JobInfo]) <- 
-  case r of 
-    Error err -> putStrLn err
-    Success jinfos -> forM_ jinfos $ \x -> do putStrLn "-------------" 
-                                              putStrLn (show x)
--}
-
-
--- | 
-
-jobqueueAssign :: Url -> ClientConfiguration -> IO (Maybe JobInfo) 
-jobqueueAssign url cc = do 
-  putStrLn $ "Assign request of job "
-  withManager $ \manager -> do
-    requesttemp <- parseUrl (url </> "assign")
-    let ccjson = encode $ toJSON cc
-        myrequestbody = RequestBodyLBS ccjson 
-        requestpost = requesttemp { 
-                        method = methodPost, 
-                        requestHeaders = [ ("Content-Type", "text/plain") 
-                                         , ("Accept", "application/json; charset=utf-8")], 
-                        requestBody = myrequestbody } 
-    r <- httpLbs requestpost manager 
-    let result = ( parseJson . SC.concat . C.toChunks .  responseBody ) r :: Result JobInfo 
-    case result of
-      Error err -> do {liftIO (putStrLn ("error msg from server : " ++ err)); return Nothing }
-      Success info -> return (Just info)
-
-
--- | 
-
-confirmAssignment :: Url -> String -> JobInfo -> IO (Maybe JobInfo)
-confirmAssignment url cname jinfo = do  
-  putStrLn "try confirmation"
-  putStrLn (show jinfo)
-  case jobinfo_status jinfo of 
-    Unassigned -> do 
-      let newjob = jinfo { jobinfo_status = Assigned cname } 
-      jobqueuePut url newjob 
-    _ -> return Nothing 
-
--- | 
-
-backToUnassigned :: Url -> JobInfo -> IO (Maybe JobInfo)
+backToUnassigned :: URL -> JobInfo -> IO (Either String JobInfo)
 backToUnassigned url jinfo = changeStatus url jinfo Unassigned 
 
 -- | 
-
-makeFinished :: Url -> JobInfo -> IO (Maybe JobInfo)
+makeFinished :: URL -> JobInfo -> IO (Either String JobInfo)
 makeFinished url jinfo = changeStatus url jinfo (Finished "forcefully")
 
 -- | 
-
-changeStatus :: Url -> JobInfo -> JobStatus -> IO (Maybe JobInfo)
-changeStatus url jinfo status = do 
-  let newjob = jinfo { jobinfo_status = status } 
-  jobqueuePut url newjob
+changeStatus :: URL -> JobInfo -> JobStatus -> IO (Either String JobInfo)
+changeStatus url jinfo status = jobqueuePut url (jinfo { jobinfo_status = status })
 
 -- |
-
-getWebDAVInfo :: Url -> IO (Either String URLtype)
+getWebDAVInfo :: URL -> IO (Either String URLtype)
 getWebDAVInfo url = getJsonFromServer url "config/webdav" 
 
 {-
@@ -177,8 +105,8 @@ getWebDAVInfo url = getJsonFromServer url "config/webdav"
 -}
 
 -- | 
-getJsonFromServer :: (FromJSON a) => Url -> String -> IO (Either String a)
-getJsonFromServer url api = do 
+getJsonFromServer :: (FromJSON a) => URL -> String -> IO (Either String a)
+getJsonFromServer (URL url) api = do 
   withManager $ \manager -> do
     requestget <- parseUrl (url </> api)
     let requestgetjson = requestget { 
@@ -192,6 +120,37 @@ getJsonFromServer url api = do
           Success result -> return (Right result)
           Error err -> return (Left err)
       else return (Left (url ++ " is not working"))
+
+-- | 
+sendJson :: (ToJSON a, FromJSON b) => SendMethod -> URL -> String -> a -> IO (Either String b)
+sendJson method (URL url) api obja = do 
+  withManager $ \manager -> do
+    requesttemp <- parseUrl (url </> api)
+    let objajson = encode $ toJSON obja
+        myrequestbody = RequestBodyLBS objajson 
+        requestpost = requesttemp { method = case method of 
+                                               MethodPUT  -> methodPut
+                                               MethodPOST -> methodPost
+                                  , requestHeaders = [ ("Content-Type", "text/plain") 
+                                  , ("Accept", "application/json; charset=utf-8")]
+                                  , requestBody = myrequestbody } 
+    r <- httpLbs requestpost manager
+    if responseStatus r == ok200 
+      then do
+        let jsonstr = (C.toStrict . responseBody) r
+        liftIO $ SC.putStrLn jsonstr
+        case parseJson jsonstr of
+          Success result -> return (Right result)
+          Error err -> return (Left err)
+      else return (Left (url ++ " is not working"))
+
+
+{-
+    let result = ( parseJson . SC.concat . C.toChunks .  responseBody ) r :: Result JobInfo 
+    case result of
+      Error err -> do {liftIO (putStrLn ("error msg from server : " ++ err)); return Nothing }
+      Success info -> return (Just info)
+-}
 
 -- | 
 parseJson :: (FromJSON a) => SC.ByteString -> Result a

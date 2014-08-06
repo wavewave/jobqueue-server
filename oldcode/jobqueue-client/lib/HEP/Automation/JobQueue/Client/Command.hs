@@ -2,19 +2,19 @@
 
 module HEP.Automation.JobQueue.Client.Command where
 
--- import HEP.Automation.Pipeline.Config 
-import HEP.Automation.JobQueue.Client.Type 
-import HEP.Automation.JobQueue.Client.Phase
-
-import qualified HEP.Automation.MadGraph.Log as MadGraphLog 
-
 import System.Log.Logger
 import System.Log.Handler.Syslog
 import System.Log.Handler.Simple
 import System.Log.Handler (setFormatter)
 import System.Log.Formatter
-
 import System.IO
+ -- 
+import qualified HEP.Automation.MadGraph.Log as MadGraphLog 
+-- 
+import HEP.Automation.JobQueue.Client.Job
+import HEP.Automation.JobQueue.Client.Phase
+import HEP.Automation.JobQueue.Client.Type 
+
 
 commandLineProcess :: JobClient -> IO () 
 commandLineProcess (Get jid url) = do 
