@@ -41,6 +41,7 @@ import           Network.Wai
 import           Yesod hiding (update)
 -- 
 import HEP.Automation.MadGraph.Util 
+import HEP.Automation.EventGeneration.Type
 import HEP.Automation.JobQueue.JobType 
 import HEP.Automation.JobQueue.JobJson
 import HEP.Automation.JobQueue.JobQueue

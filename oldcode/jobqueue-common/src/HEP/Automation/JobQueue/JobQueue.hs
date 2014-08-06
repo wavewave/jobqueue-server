@@ -27,8 +27,10 @@ import qualified Data.IntMap as M
 import Data.SafeCopy
 import Data.Typeable
 -- 
-import HEP.Automation.JobQueue.JobType
+import HEP.Automation.EventGeneration.Type
 import HEP.Storage.WebDAV.Type
+-- 
+import HEP.Automation.JobQueue.JobType
 -- 
 import Prelude hiding (length)
 

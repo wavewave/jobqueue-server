@@ -51,6 +51,7 @@ Library
                    bytestring,  
                    cmdargs, 
                    containers, 
+                   either,
                    filepath, 
                    hslogger,
                    http-types, 
@@ -62,6 +63,7 @@ Library
                    pipeline-eventgen, 
                    safecopy, 
                    text,
+                   transformers,
                    webdav-manager
 
   Exposed-Modules: 

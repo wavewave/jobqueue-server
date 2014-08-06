@@ -35,19 +35,11 @@ import HEP.Automation.MadGraph.ModelParser
 import HEP.Automation.MadGraph.Run
 import HEP.Automation.MadGraph.SetupType
 import HEP.Automation.MadGraph.Type
+import HEP.Automation.EventGeneration.Type
+
 import HEP.Parser.LHE.Sanitizer.Type
 import HEP.Storage.WebDAV.Type 
  
-
-data EventSet = forall a. Model a => 
-  EventSet {
-    evset_psetup :: ProcessSetup a, 
-    evset_param  :: ModelParam a,
-    evset_rsetup :: RunSetup
-  } 
-
-instance Show EventSet where
-  show (EventSet p param r) = show p ++ "\n" ++ show param ++ "\n" ++ show r 
 
 
 instance (Model a) => SafeCopy (ModelParam a) where

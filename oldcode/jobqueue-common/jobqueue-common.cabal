@@ -30,6 +30,7 @@ Library
                  text, 
                  parsec, 
                  bytestring, 
+                 pipeline-eventgen,
                  unordered-containers, 
                  webdav-manager
 

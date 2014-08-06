@@ -1,20 +1,22 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-{- |
-Module       : HEP.Automation.JobQueue.Client.Phase
-Copyright    : Ian-Woo Kim
-License      : BSD3
+-----------------------------------------------------------------------------
+-- |
+-- Module      : HEP.Automation.JobQueue.Client.Phase
+-- Copyright   : (c) 2011,2012,2014 Ian-Woo Kim
+--
+-- License     : BSD3
+-- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- jobqueue-client driver routine and eventloop for each phase
+-- 
+-- This module is a collection of startXXXXPhase routines, which
+-- are a driver procedure for each phase.
+-- 
+-----------------------------------------------------------------------------
 
-Maintainer   : Ian-Woo Kim <ianwookim@gmail.com>
-Stability    : Experimental
-Portability  : unknown 
- 
-jobqueue-client driver routine and eventloop for each phase
-
-This module is a collection of startXXXXPhase routines, which
-are a driver procedure for each phase. 
-
--}
 
 module HEP.Automation.JobQueue.Client.Phase 
 {-         ( -- * Get command 
@@ -38,6 +40,9 @@ where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad
+import Control.Monad.IO.Class
+import Control.Monad.Trans
+import Control.Monad.Trans.Either
 import Data.Aeson.Types 
 -- 
 import HEP.Automation.EventGeneration.Config
@@ -46,10 +51,15 @@ import HEP.Automation.EventGeneration.Job
 import HEP.Automation.EventGeneration.Type
 import HEP.Automation.EventGeneration.Util
 import HEP.Automation.EventGeneration.Work
+import HEP.Automation.MadGraph.SetupType
 --
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config 
 import HEP.Automation.JobQueue.Client.Job
+
+-- | 
+guardEither :: (Monad m) => String -> Bool -> EitherT String m () -> EitherT String m ()
+guardEither msg b action = if b then action else left msg 
 
 -- |
 startListPhase :: URL -> String -> IO () 
@@ -77,8 +87,8 @@ startDeletePhase url jid = do
                         jobqueueDelete url jid
                         return ()
  
-startWaitPhase :: ClientConfiguration -> URL -> Int -> Int -> IO () 
-startWaitPhase cc url n assignfailure = do 
+startWaitPhase :: (ClientConfiguration,EventgenConfig) -> URL -> Int -> Int -> IO () 
+startWaitPhase (cc,ec) url n assignfailure = do 
   putStrLn "starting Wait Phase"
   when (assignfailure < 0) $ do 
       putStrLn "too many assign failure. kill the process" 
@@ -89,65 +99,67 @@ startWaitPhase cc url n assignfailure = do
                      else return n
   r <- jobqueueAssign url cc 
   case r of 
-    Right jinfo -> startJobPhase cc url jinfo newn 10
+    Right jinfo -> startJobPhase (cc,ec) url jinfo newn 10
     Left err -> do
       putStrLn ("assign failure : " ++ err)
       putStrLn ("remaining chance : " ++ show assignfailure)
       -- threadDelay . (*1000000) . nc_polling . lc_networkConfiguration $ lc
       -- threadDelay (1000000*60)
       threadDelay ( 1000000*10 )
-      startWaitPhase cc url newn (assignfailure-1)
+      startWaitPhase (cc,ec) url newn (assignfailure-1)
 
 
+testactiontrue :: (Monad m) => EitherT String m ()
+testactiontrue = right ()
 
-startJobPhase :: ClientConfiguration -> URL -> JobInfo -> Int -> Int -> IO ()
-startJobPhase cc url jinfo n af = do 
+testactionfalse :: (Monad m) => EitherT String m ()
+testactionfalse = left "error"
+
+
+startJobPhase :: (ClientConfiguration,EventgenConfig) -> URL -> JobInfo -> Int -> Int -> IO ()
+startJobPhase (cc,ec) url jinfo n af = do 
   putStrLn "starting Job Phase"
   let cname = computerName cc 
+      ss = evgen_scriptsetup ec
   -- check job here
+
   r <- confirmAssignment url cname jinfo 
   case r of
-    Left err -> putStrLn err >> startWaitPhase cc url (n-1) af
+    Left err -> putStrLn err >> startWaitPhase (cc,ec) url (n-1) af
     Right jinfo' -> do 
       putStrLn "job assigned well"
       r' <- getWebDAVInfo url
       case r' of 
-        Left err -> startWaitPhase cc url n af
+        Left err -> startWaitPhase (cc,ec) url n af
         Right sconf -> do 
           let -- wc = WorkConfig lc sconf
               -- job = jobMatch jinfo
-              back = backToUnassigned url jinfo >> startWaitPhase cc url (n-1) af
+              failureCallback = backToUnassigned url jinfo >> startWaitPhase (cc,ec) url (n-1) af
           -- putStrLn $ "Work Configuration = " ++ show wc
           -- b1 <- pipeline_checkSystem job wc jinfo'
-          let b1 = True
-          threadDelay 10000000
-          if not b1 
-            then back
-            else do 
-              changeStatus url jinfo' (BeingCalculated cname)
-              -- b2 <- pipeline_startWork job wc jinfo' 
-              let b2 = True
-              threadDelay 10000000
-              if not b2 
-                then back
-                else do
-                  changeStatus url jinfo' (BeingTested cname)
-                  -- b3 <- pipeline_startTest job wc jinfo'
-                  let b3 = True
-                  threadDelay 10000000
-                  if not b3 
-                    then back
-                    else do 
-                      -- b4 <- pipeline_uploadWork job wc jinfo'
-                      let b4 = True
-                      threadDelay 10000000
-                      if not b4 
-                        then back
-                        else do
-                          changeStatus url jinfo' (Finished cname)
-                          threadDelay 10000000
-                          return ()
-  startWaitPhase cc url n af
+          print sconf 
+          let EventGen evset rdir = jobinfo_detail jinfo
+          case evset of 
+            EventSet pset param rset -> do
+              let wsetup = WS { ws_ssetup = ss, ws_psetup = pset , ws_param = param, ws_rsetup = rset, ws_storage = rdir } 
+              r'' <- runEitherT $ do           
+                testactiontrue -- checkSystem
+                liftIO $ threadDelay 3000000
+                lift $ changeStatus url jinfo' (BeingCalculated cname)
+                liftIO $ work wsetup 
+
+                -- testactiontrue -- startWork
+                liftIO $ threadDelay 3000000
+                lift $ changeStatus url jinfo' (BeingTested cname)
+                testactionfalse -- startTest
+                liftIO $ threadDelay 3000000
+                testactiontrue -- uploadWork
+                liftIO $ threadDelay 3000000
+                lift $ changeStatus url jinfo' (Finished cname)
+                liftIO $ threadDelay 3000000
+                return ()
+              either (\msg -> putStrLn msg >> failureCallback) (const (return ())) r''
+  startWaitPhase (cc,ec) url n af
 
 
 {- 
