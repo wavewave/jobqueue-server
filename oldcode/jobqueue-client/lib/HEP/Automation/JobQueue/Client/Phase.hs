@@ -37,12 +37,9 @@ module HEP.Automation.JobQueue.Client.Phase
 where
 
 import Control.Concurrent (threadDelay)
-
--- import HEP.Automation.Pipeline.Config
--- import HEP.Automation.Pipeline.Job
--- import HEP.Automation.Pipeline.Job.Match
--- import HEP.Automation.Pipeline.Job.DummyTest
-
+import Control.Monad
+import Data.Aeson.Types 
+-- 
 import HEP.Automation.EventGeneration.Config
 import HEP.Automation.EventGeneration.Deploy
 import HEP.Automation.EventGeneration.Job
@@ -53,10 +50,6 @@ import HEP.Automation.EventGeneration.Work
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config 
 import HEP.Automation.JobQueue.Client.Job
-
-import Data.Aeson.Types 
-import Control.Monad
-
 
 -- |
 startListPhase :: URL -> String -> IO () 
@@ -83,71 +76,70 @@ startDeletePhase url jid = do
     Right jobinfo -> do putStrLn $ " job is " ++ show jobinfo
                         jobqueueDelete url jid
                         return ()
-
-
-{-
-startWaitPhase :: URL -> Int -> Int -> IO () 
-startWaitPhase (URL url) n assignfailure = do 
+ 
+startWaitPhase :: ClientConfiguration -> URL -> Int -> Int -> IO () 
+startWaitPhase cc url n assignfailure = do 
   putStrLn "starting Wait Phase"
   when (assignfailure < 0) $ do 
       putStrLn "too many assign failure. kill the process" 
       error "assign failure kill"
-  newn <- if (n < 0) 
-            then do 
-              putStrLn "too many failure, need to take a rest" 
-              threadDelay (60*1000000)
-              return 3 
-            else return n
-  r <- jobqueueAssign url (lc_clientConfiguration lc) 
+  newn <- if (n < 0) then do putStrLn "too many failure, need to take a rest" 
+                             threadDelay (60*1000000)
+                             return 3 
+                     else return n
+  r <- jobqueueAssign url cc 
   case r of 
-    Just jinfo -> startJobPhase lc jinfo newn 10
-    Nothing -> do
-      putStrLn "assign failure" 
+    Right jinfo -> startJobPhase cc url jinfo newn 10
+    Left err -> do
+      putStrLn ("assign failure : " ++ err)
       putStrLn ("remaining chance : " ++ show assignfailure)
-      threadDelay . (*1000000) . nc_polling . lc_networkConfiguration $ lc
-      startWaitPhase lc newn (assignfailure-1)
--}
+      -- threadDelay . (*1000000) . nc_polling . lc_networkConfiguration $ lc
+      -- threadDelay (1000000*60)
+      threadDelay ( 1000000*10 )
+      startWaitPhase cc url newn (assignfailure-1)
 
 
-{- 
 
-startJobPhase :: LocalConfiguration -> JobInfo -> Int -> Int -> IO ()
-startJobPhase lc jinfo n af = do 
+startJobPhase :: ClientConfiguration -> URL -> JobInfo -> Int -> Int -> IO ()
+startJobPhase cc url jinfo n af = do 
   putStrLn "starting Job Phase"
-  let url = nc_jobqueueurl . lc_networkConfiguration $ lc
-  let cname = computerName . lc_clientConfiguration $ lc
+  let cname = computerName cc 
   -- check job here
   r <- confirmAssignment url cname jinfo 
   case r of
-    Nothing -> startWaitPhase lc (n-1) af
-    Just jinfo' -> do 
+    Left err -> putStrLn err >> startWaitPhase cc url (n-1) af
+    Right jinfo' -> do 
       putStrLn "job assigned well"
       r' <- getWebDAVInfo url
       case r' of 
-        Error err -> startWaitPhase lc n af
-        Success sconf -> do 
-          let wc = WorkConfig lc sconf
-              job = jobMatch jinfo
-              back = backToUnassigned url jinfo >> startWaitPhase lc (n-1) af
-          putStrLn $ "Work Configuration = " ++ show wc
-          b1 <- pipeline_checkSystem job wc jinfo'
+        Left err -> startWaitPhase cc url n af
+        Right sconf -> do 
+          let -- wc = WorkConfig lc sconf
+              -- job = jobMatch jinfo
+              back = backToUnassigned url jinfo >> startWaitPhase cc url (n-1) af
+          -- putStrLn $ "Work Configuration = " ++ show wc
+          -- b1 <- pipeline_checkSystem job wc jinfo'
+          let b1 = True
           threadDelay 10000000
           if not b1 
             then back
             else do 
               changeStatus url jinfo' (BeingCalculated cname)
-              b2 <- pipeline_startWork job wc jinfo' 
+              -- b2 <- pipeline_startWork job wc jinfo' 
+              let b2 = True
               threadDelay 10000000
               if not b2 
                 then back
                 else do
                   changeStatus url jinfo' (BeingTested cname)
-                  b3 <- pipeline_startTest job wc jinfo'
+                  -- b3 <- pipeline_startTest job wc jinfo'
+                  let b3 = True
                   threadDelay 10000000
                   if not b3 
                     then back
                     else do 
-                      b4 <- pipeline_uploadWork job wc jinfo'
+                      -- b4 <- pipeline_uploadWork job wc jinfo'
+                      let b4 = True
                       threadDelay 10000000
                       if not b4 
                         then back
@@ -155,7 +147,10 @@ startJobPhase lc jinfo n af = do
                           changeStatus url jinfo' (Finished cname)
                           threadDelay 10000000
                           return ()
-  startWaitPhase lc n af
+  startWaitPhase cc url n af
+
+
+{- 
 
 -- |
 

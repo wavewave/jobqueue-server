@@ -32,6 +32,7 @@ import HEP.Storage.WebDAV.Type
 -- 
 import Prelude hiding (length)
 
+-- newtype JobNumber = JobNum { unJobNum :: Int}
 type JobNumber = Int
 
 data JobPriority = NonUrgent | Urgent   

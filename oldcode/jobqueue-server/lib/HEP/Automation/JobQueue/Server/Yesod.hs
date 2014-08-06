@@ -208,12 +208,12 @@ putJobR n = do
   JobQueueServer acid _ <- getYesod 
   parsed <- parseJsonBody 
   case parsed of 
-    Error str -> makeTypedContentFromHamletJson [shamlet| this is not html |] (toJSON ("Fail" :: String))
-    Success result -> do 
+    Error str -> makeTypedContentFromHamletJson [shamlet| this is not html |] (toJSON (Left str :: Either String JobInfo))
+    Success result  -> do 
       liftIO $ do 
         putStrLn $ show result
         update acid (UpdateJob n result) >>= print  
-      makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON ("Success" :: String))
+      makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON (Right result :: Either String JobInfo))
 
 
 postQueueR :: Int -> Handler ()

@@ -1,7 +1,19 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
-module HEP.Automation.JobQueue.Client.Job where
+--------------------------------------------------------------------
+-- Module       : HEP.Automation.JobQueue.Client.Job
+-- Copyright    : Ian-Woo Kim
+-- License      : BSD3
+-- 
+-- Maintainer   : Ian-Woo Kim <ianwookim@gmail.com>
+-- Stability    : Experimental
+-- Portability  : unknown 
+--  
+-- main worker for client  
+--
+---------------------------------------------------------------------
 
+module HEP.Automation.JobQueue.Client.Job where
 
 import Control.Applicative
 import Control.Monad
@@ -12,6 +24,7 @@ import Data.Aeson.Parser
 import qualified Data.Attoparsec as P
 import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.ByteString.Char8 as SC
+import           Data.Monoid
 import Data.Text.Encoding 
 import Network.HTTP.Types hiding (statusCode)
 import Network.HTTP.Conduit
@@ -39,21 +52,6 @@ jobqueueGet url jid = join <$> getJsonFromServer url ("job/" ++ show jid)
 jobqueuePut :: URL -> JobInfo -> IO (Either String JobInfo)
 jobqueuePut url jinfo = join <$> sendJson MethodPUT url ("job" </> show (jobinfo_id jinfo)) jinfo
 
-{-  do 
-  withManager $ \manager -> do
-    requesttemp <- parseUrl (url </> "job" 
-                                 </> show (jobinfo_id jinfo))
-    let myrequestbody = RequestBodyLBS . encode . toJSON $ jinfo
-    let requestput = requesttemp { 
-                       method = methodPut, 
-                       requestHeaders = [ ("Content-Type", "text/plain") 
-                                        , ("Accept", "application/json; charset=utf-8")], 
-                       requestBody = myrequestbody 
-                     } 
-    r <- httpLbs requestput manager 
-    liftIO ( putStrLn $ show r )
-    return (Just jinfo)
--}
 
 -- | delete job
 jobqueueDelete :: URL -> Int -> IO ()
@@ -94,16 +92,6 @@ changeStatus url jinfo status = jobqueuePut url (jinfo { jobinfo_status = status
 getWebDAVInfo :: URL -> IO (Either String URLtype)
 getWebDAVInfo url = getJsonFromServer url "config/webdav" 
 
-{-
-  case r of 
-    Nothing -> return Nothing
-    Just value -> do 
-      let c = fromJSON value :: Result WebDAVServer
-      case c of 
-        Error str -> return Nothing
-        Success c' -> return (Just c')
--}
-
 -- | 
 getJsonFromServer :: (FromJSON a) => URL -> String -> IO (Either String a)
 getJsonFromServer (URL url) api = do 
@@ -138,19 +126,11 @@ sendJson method (URL url) api obja = do
     if responseStatus r == ok200 
       then do
         let jsonstr = (C.toStrict . responseBody) r
-        liftIO $ SC.putStrLn jsonstr
+        liftIO $ SC.putStrLn (" in sendJson " <> jsonstr)
         case parseJson jsonstr of
           Success result -> return (Right result)
           Error err -> return (Left err)
       else return (Left (url ++ " is not working"))
-
-
-{-
-    let result = ( parseJson . SC.concat . C.toChunks .  responseBody ) r :: Result JobInfo 
-    case result of
-      Error err -> do {liftIO (putStrLn ("error msg from server : " ++ err)); return Nothing }
-      Success info -> return (Just info)
--}
 
 -- | 
 parseJson :: (FromJSON a) => SC.ByteString -> Result a
