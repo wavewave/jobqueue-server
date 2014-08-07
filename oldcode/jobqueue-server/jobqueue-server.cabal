@@ -15,8 +15,6 @@ Executable jobqueueserver
   Build-Depends: base == 4.*, 
                  mtl, 
                  jobqueue-common, 
-                 yesod, 
-                 yesod-core, 
                  bytestring, 
                  wai-extra, 
                  wai, 
@@ -24,6 +22,9 @@ Executable jobqueueserver
                  containers,
                  acid-state, 
                  attoparsec, 
+                 yesod, 
+                 yesod-core, 
+                 --
                  jobqueue-server
 
 
@@ -70,6 +71,7 @@ Library
                  transformers, 
                  bytestring,
                  unordered-containers,
+                 pipeline-eventgen,
                  yesod, 
                  wai, 
                  conduit

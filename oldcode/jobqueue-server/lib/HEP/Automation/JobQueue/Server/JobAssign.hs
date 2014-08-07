@@ -6,7 +6,7 @@ import HEP.Automation.JobQueue.JobQueue
 import Data.Maybe
 
 checkJobCompatibility :: ClientConfiguration -> JobInfo -> Bool 
-checkJobCompatibility (ClientConfiguration _cname math _pbs montecarlo _dsdir) 
+checkJobCompatibility (ClientConfiguration _ math _pbs montecarlo _dsdir) 
                       jobinfo =
   case jobinfo_detail jobinfo of 
     EventGen _ _ -> montecarlo
