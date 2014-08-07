@@ -38,6 +38,7 @@ module HEP.Automation.JobQueue.Client.Phase
         )  -}
 where
 
+import Control.Applicative 
 import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.IO.Class
@@ -52,6 +53,7 @@ import HEP.Automation.EventGeneration.Type
 import HEP.Automation.EventGeneration.Util
 import HEP.Automation.EventGeneration.Work
 import HEP.Automation.MadGraph.SetupType
+import HEP.Storage.WebDAV.Type
 --
 import HEP.Automation.JobQueue.JobQueue
 import HEP.Automation.JobQueue.Config 
@@ -60,6 +62,10 @@ import HEP.Automation.JobQueue.Client.Job
 -- | 
 guardEither :: (Monad m) => String -> Bool -> EitherT String m () -> EitherT String m ()
 guardEither msg b action = if b then action else left msg 
+
+-- | 
+maybeToEither :: b -> Maybe a -> Either b a
+maybeToEither err = maybe (Left err) Right
 
 -- |
 startListPhase :: URL -> String -> IO () 
@@ -151,9 +157,16 @@ startJobPhase (cc,ec) url jinfo n af = do
                 -- testactiontrue -- startWork
                 liftIO $ threadDelay 3000000
                 lift $ changeStatus url jinfo' (BeingTested cname)
-                testactionfalse -- startTest
-                liftIO $ threadDelay 3000000
-                testactiontrue -- uploadWork
+                -- testactionfalse -- startTest
+                -- liftIO $ threadDelay 3000000
+                let uploadtyp = uploadhep rset
+                    whost = evgen_webdavroot ec 
+                    pkey = evgen_privatekeyfile ec 
+                    pswd = evgen_passwordstore ec 
+                cr <- EitherT (maybeToEither "cannot retrieve credentials" <$> getCredential pkey pswd)
+                let wdavcfg = WebDAVConfig { webdav_credential = cr, webdav_baseurl = whost }
+                liftIO $ uploadEventFull uploadtyp wdavcfg wsetup 
+                liftIO $ uploadJSON wdavcfg wsetup
                 liftIO $ threadDelay 3000000
                 lift $ changeStatus url jinfo' (Finished cname)
                 liftIO $ threadDelay 3000000
