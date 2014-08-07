@@ -63,11 +63,14 @@ instance SafeCopy Detector where
 instance SafeCopy MachineType where 
   putCopy TeVatron = contain (safePut (0 :: Int))
   putCopy (LHC7 detector)   = contain $ do {safePut (1 :: Int); safePut detector}
-  putCopy (LHC14 detector)  = contain $ do {safePut (2 :: Int); safePut detector} 
+  putCopy (LHC8 detector)   = contain $ do {safePut (2 :: Int); safePut detector} 
+  putCopy (LHC10 detector)  = contain $ do {safePut (3 :: Int); safePut detector} 
+  putCopy (LHC13 detector)  = contain $ do {safePut (4 :: Int); safePut detector} 
+  putCopy (LHC14 detector)  = contain $ do {safePut (5 :: Int); safePut detector} 
   putCopy (Parton energy detector) = 
-    contain $ do {safePut (3 :: Int); safePut energy; safePut detector}
+    contain $ do {safePut (6 :: Int); safePut energy; safePut detector}
   putCopy (PolParton energy ipol detector) = 
-    contain $ do safePut (4 :: Int) 
+    contain $ do safePut (7 :: Int) 
                  safePut energy 
                  (safePut . rhpol_percent . particle1pol ) ipol 
                  (safePut . rhpol_percent . particle2pol ) ipol 
@@ -79,9 +82,12 @@ instance SafeCopy MachineType where
       case x of 
         0 -> return TeVatron 
         1 -> LHC7 <$> safeGet
-        2 -> LHC14 <$> safeGet
-        3 -> Parton <$> safeGet <*> safeGet
-        4 -> do energy <- safeGet
+        2 -> LHC8 <$> safeGet
+        3 -> LHC10 <$> safeGet
+        4 -> LHC13 <$> safeGet
+        5 -> LHC14 <$> safeGet
+        6 -> Parton <$> safeGet <*> safeGet
+        7 -> do energy <- safeGet
                 p1pol  <- RH <$> safeGet 
                 p2pol  <- RH <$> safeGet
                 let ipol = InitPolarization p1pol p2pol 
