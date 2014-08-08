@@ -141,11 +141,11 @@ instance SafeCopy PGSType where
                                    return (RunPGS algotau)
 
 instance SafeCopy PGSTau where
-  putCopy NoTau   = contain (safePut (0 :: Int))
+  -- putCopy NoTau   = contain (safePut (0 :: Int))
   putCopy WithTau = contain (safePut (1 :: Int))
   getCopy = contain $ do (x :: Int) <- safeGet 
                          case x of 
-                           0 -> return NoTau
+                           -- 0 -> return NoTau
                            1 -> return WithTau
 
 
