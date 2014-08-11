@@ -1,4 +1,6 @@
-module MyTest where
+module Main where
+
+import System.Environment
 
 import HEP.Automation.EventGeneration.Config
 import HEP.Automation.JobQueue.Client.Phase 
@@ -7,14 +9,10 @@ import HEP.Automation.JobQueue.Config
 
 ccgen name =ClientConfiguration { computerName = name, haveMathematica = True, havePBS=True,  canMonteCarlo = True, datasetDir = "tes" }
 
-
-{- 
-main = do 
-  Right x <- jobqueueGet (URL "http://localhost:3600") 4
-  backToUnassigned (URL "http://localhost:3600") x
--}
-
-start fp = do
+main :: IO ()
+main = do
+  args <- getArgs
+  let fp = args !! 0
   r <- getConfig fp
   case r of
     Nothing -> putStrLn "cannot parse config"

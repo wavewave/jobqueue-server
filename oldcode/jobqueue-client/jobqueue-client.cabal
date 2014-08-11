@@ -38,6 +38,33 @@ Executable jobclient
   ghc-prof-options: -caf-all -auto-all
 
 
+Executable MyTest 
+  Main-is: MyTest.hs
+  hs-source-dirs: exe
+  Build-Depends: base == 4.*, 
+                 -- 
+                 acid-state,
+                 aeson, 
+                 attoparsec,
+                 bytestring, 
+                 cmdargs, 
+                 containers, 
+                 hslogger,
+                 http-types, 
+                 http-conduit, 
+                 madgraph-auto, 
+                 mtl, 
+                 jobqueue-common, 
+                 parsec, 
+                 pipeline-eventgen, 
+                 safecopy,
+                 -- 
+                 jobqueue-client
+
+  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
+  ghc-prof-options: -caf-all -auto-all
+
+
 
 Library
   hs-source-dirs: lib
