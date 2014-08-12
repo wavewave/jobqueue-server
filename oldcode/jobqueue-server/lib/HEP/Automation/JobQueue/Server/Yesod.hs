@@ -38,6 +38,8 @@ import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as M
 import           Data.List 
 import           Network.Wai
+-- import           Text.Blaze.Html.Renderer.String (renderHtml)
+import           Text.Hamlet
 import           Yesod hiding (update)
 -- 
 import HEP.Automation.MadGraph.Util 
@@ -61,6 +63,7 @@ data JobQueueServer = JobQueueServer {
 mkYesod "JobQueueServer" [parseRoutes|
 / HomeR GET
 /job/#JobNumber JobR 
+/revert/#JobNumber RevertR GET
 /queue/#Int QueueR POST
 /queuemany QueueManyR POST 
 /queuelist QueueListR GET 
@@ -153,6 +156,60 @@ deleteJobR n = do
       liftIO $ update acid (DeleteJob n) >>= print  
       makeTypedContentFromHamletJson [shamlet|success|] (toJSON ("Delete Succeed" :: String))
 
+getRevertR :: Int -> Handler Html
+getRevertR n = do
+  liftIO $ putStrLn "getJobR called"
+  JobQueueServer acid sconf <- getYesod 
+  r <- liftIO $ query acid (QueryJob n)  
+  let rstr = case r of 
+               Nothing -> Left ("No such job" :: String)
+               Just j  -> Right j
+  case rstr of 
+    Left e -> do  
+     let titlestr = "Job " ++ show n ++ " detail" 
+     return [shamlet|
+             <html> 
+               <head> 
+                 <title>#{titlestr}
+               <body> 
+                 <h1> Job #{n} 
+                 <p>
+                    #{e}
+            |]
+    Right jold -> do 
+      let j = jold { jobinfo_status = Unassigned }
+          jid = jobinfo_id j 
+
+      liftIO $ update acid (UpdateJob jid j)
+      let jdet = jobinfo_detail j 
+          url = case server_webdav sconf of
+                  GlobalURL u -> u 
+                  LocalURL u' -> u'
+          jremotedir = webdav_remotedir . jobdetail_remotedir $ jdet
+          jstatus = show . jobinfo_status $ j 
+          jpriority = show . jobinfo_priority $ j 
+      case (jobdetail_evset jdet) of 
+        EventSet ps param rs -> do 
+          let wname = makeRunName ps param rs  
+              titlestr = "Job " ++ show n ++ " detail"  
+          -- $(shamletFile "test.hamlet")
+          return [shamlet| 
+             <html> 
+               <head> 
+                 <title>#{titlestr}
+               <body>
+                 <h1> Job #{n} 
+                 <ul> 
+                   <li> job id = #{jid} 
+                   <li> job name = #{wname} 
+                   <li> job status = #{jstatus}
+                   <li> job priority = #{jpriority}  
+                   <li> job remote dir = 
+                     <a href=#{url}/#{jremotedir}> #{jremotedir} 
+                   <li> job detail = #{show jdet} 
+                   <li> revert
+          |]   
+
 getJobR :: Int -> Handler TypedContent
 getJobR n = do
   liftIO $ putStrLn "getJobR called"
@@ -161,6 +218,7 @@ getJobR n = do
   let rstr = case r of 
                Nothing -> Left ("No such job" :: String)
                Just j  -> Right j
+  renderer <- getUrlRenderParams
   let getJobhamlet = case rstr of 
         Left e -> do  
           let titlestr = "Job " ++ show n ++ " detail" 
@@ -186,7 +244,8 @@ getJobR n = do
             EventSet ps param rs -> do 
               let wname = makeRunName ps param rs  
                   titlestr = "Job " ++ show n ++ " detail"  
-              [shamlet| 
+              -- $(shamletFile "test.hamlet")
+              let html = [hamlet| 
                  <html> 
                    <head> 
                      <title>#{titlestr}
@@ -200,7 +259,11 @@ getJobR n = do
                        <li> job remote dir = 
                          <a href=#{url}/#{jremotedir}> #{jremotedir} 
                        <li> job detail = #{show jdet} 
-              |]       
+                       <li> <a href=@{RevertR jid}> revert
+
+              |]   
+              toHtml $ html renderer
+
   makeTypedContentFromHamletJson getJobhamlet (toJSON rstr)
 
 putJobR :: Int -> Handler TypedContent
