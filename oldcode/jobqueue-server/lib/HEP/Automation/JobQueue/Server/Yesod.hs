@@ -192,7 +192,6 @@ getRevertR n = do
         EventSet ps param rs -> do 
           let wname = makeRunName ps param rs  
               titlestr = "Job " ++ show n ++ " detail"  
-          -- $(shamletFile "test.hamlet")
           return [shamlet| 
              <html> 
                <head> 
@@ -244,7 +243,6 @@ getJobR n = do
             EventSet ps param rs -> do 
               let wname = makeRunName ps param rs  
                   titlestr = "Job " ++ show n ++ " detail"  
-              -- $(shamletFile "test.hamlet")
               let html = [hamlet| 
                  <html> 
                    <head> 
