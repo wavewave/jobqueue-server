@@ -86,9 +86,9 @@ instance YesodJquery JobQueueServer where
 replaceLst :: (Eq a) => [(a,b)] -> [a] -> Maybe [b]
 replaceLst assoc lst = mapM (\x -> lookup x assoc) lst
 
-makeTypedContentFromHamletJson :: Html -> Value -> Handler TypedContent
+makeTypedContentFromHamletJson :: Handler Html -> Value -> Handler TypedContent
 makeTypedContentFromHamletJson hlet j = 
-  selectRep $ do provideRep $ return hlet 
+  selectRep $ do provideRep $ hlet
                  provideRep $ return j 
 
 
@@ -98,7 +98,7 @@ postQueueManyR =do
   JobQueueServer acid _ <- getYesod  
   parsed <- parseJsonBody
   case parsed of 
-    Error str -> makeTypedContentFromHamletJson [shamlet| result not parsed well |] (toJSON str)
+    Error str -> makeTypedContentFromHamletJson (return [shamlet| result not parsed well |]) (toJSON str)
     Success idjinfos -> do  
       let uploadjob :: (Int,JobInfo) -> Handler (Int,Int)
           uploadjob (i,jinfo) = do 
@@ -129,9 +129,9 @@ postQueueManyR =do
      <h1> This page does not have a HTML support 
 |] 
 
-          makeTypedContentFromHamletJson hlet $ toJSON ("Success" :: String)
+          makeTypedContentFromHamletJson (return hlet) $ toJSON ("Success" :: String)
         Nothing -> do 
-          makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON ("Failed" :: String))
+          makeTypedContentFromHamletJson (return [shamlet| this is html found |]) (toJSON ("Failed" :: String))
 
 
 
@@ -157,10 +157,10 @@ deleteJobR n = do
   JobQueueServer acid _ <- getYesod
   r <- liftIO $ query acid (QueryJob n) 
   case r of 
-    Nothing -> makeTypedContentFromHamletJson [shamlet|this is html|] (toJSON ("No such job" :: String))
+    Nothing -> makeTypedContentFromHamletJson (return [shamlet|this is html|]) (toJSON ("No such job" :: String))
     Just _  -> do
       liftIO $ update acid (DeleteJob n) >>= print  
-      makeTypedContentFromHamletJson [shamlet|success|] (toJSON ("Delete Succeed" :: String))
+      makeTypedContentFromHamletJson (return [shamlet|success|]) (toJSON ("Delete Succeed" :: String))
 
 getRevertR :: Int -> Handler Html
 getRevertR n = do
@@ -196,22 +196,14 @@ getRevertR n = do
         EventSet ps param rs -> do 
           let wname = makeRunName ps param rs  
               titlestr = "Job " ++ show n ++ " detail"  
-          return [shamlet| 
-             <html> 
-               <head> 
-                 <title>#{titlestr}
-               <body>
-                 <h1> Job #{n} 
-                 <ul> 
-                   <li> job id = #{jid} 
-                   <li> job name = #{wname} 
-                   <li> job status = #{jstatus}
-                   <li> job priority = #{jpriority}  
-                   <li> job remote dir = 
-                     <a href=#{url}/#{jremotedir}> #{jremotedir} 
-                   <li> job detail = #{show jdet} 
-                   <li> revert
-          |]   
+          defaultLayout $ do 
+            setTitle (toHtml titlestr)
+            getYesod >>= addScriptEither . urlJqueryJs
+            addStylesheetRemote "https://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"
+            addStylesheetRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"
+            addScriptRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"
+            $(widgetFile "job")
+
 
 getJobR :: Int -> Handler TypedContent
 getJobR n = do
@@ -252,7 +244,7 @@ getJobR n = do
                 addStylesheetRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"
                 addScriptRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"
                 $(widgetFile "job")
-  getJobhamlet >>= \html -> makeTypedContentFromHamletJson html (toJSON rstr)
+  makeTypedContentFromHamletJson getJobhamlet (toJSON rstr)
 
 putJobR :: Int -> Handler TypedContent
 putJobR n = do 
@@ -260,12 +252,12 @@ putJobR n = do
   JobQueueServer acid _ <- getYesod 
   parsed <- parseJsonBody 
   case parsed of 
-    Error str -> makeTypedContentFromHamletJson [shamlet| this is not html |] (toJSON (Left str :: Either String JobInfo))
+    Error str -> makeTypedContentFromHamletJson (return [shamlet| this is not html |]) (toJSON (Left str :: Either String JobInfo))
     Success result  -> do 
       liftIO $ do 
         putStrLn $ show result
         update acid (UpdateJob n result) >>= print  
-      makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON (Right result :: Either String JobInfo))
+      makeTypedContentFromHamletJson (return [shamlet| this is html found |]) (toJSON (Right result :: Either String JobInfo))
 
 
 postQueueR :: Int -> Handler ()
@@ -326,8 +318,8 @@ getQueueListFinishedR = do
       result = filter f (snd r)
   makeTypedContentFromHamletJson (hamletListJobs url "finished" result) (toJSON result)
 
-hamletListJobs :: String -> String -> [JobInfo] -> Html
-hamletListJobs url str lst =  
+hamletListJobs :: String -> String -> [JobInfo] -> Handler Html
+hamletListJobs url str lst = 
   let jobname jdet = 
         case (jobdetail_evset jdet) of 
           EventSet p param r -> makeRunName p param r
@@ -349,7 +341,15 @@ hamletListJobs url str lst =
                              BeingCalculated c -> c
                              BeingTested c -> c 
                              Finished c -> c 
-  in [shamlet| 
+  in defaultLayout $ do
+       getYesod >>= addScriptEither . urlJqueryJs
+       addStylesheetRemote "https://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"
+       addStylesheetRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"
+       addScriptRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"
+       $(widgetFile "listjob")
+
+{- 
+[shamlet| 
     <h1> List #{str}
     <table> 
       <tr> 
@@ -371,7 +371,7 @@ hamletListJobs url str lst =
           <td> #{show (jobinfo_priority job)}
           <td> #{show (jobinfo_dependency job)}
   |]
-
+-}
 
 
 postAssignR :: Handler TypedContent
@@ -380,7 +380,7 @@ postAssignR = do
   JobQueueServer acid _ <- getYesod  
   parsed <- parseJsonBody 
   case parsed of 
-    Error str -> makeTypedContentFromHamletJson [shamlet| result not parsed well |] (toJSON ("result not parsed well :" ++ str))
+    Error str -> makeTypedContentFromHamletJson (return [shamlet| result not parsed well |]) (toJSON ("result not parsed well :" ++ str))
     Success cc -> do (_,listall) <- liftIO $ query acid QueryAll
                      let priorcomp j1 j2 
                            | jobinfo_priority j1 > jobinfo_priority j2 = LT
@@ -413,7 +413,7 @@ getConfigWebDAVR = do
     <p>
       <a href=#{url}>  #{url} 
 |]
-  makeTypedContentFromHamletJson configWebDAVhamlet (toJSON wdav)  
+  makeTypedContentFromHamletJson (return configWebDAVhamlet) (toJSON wdav)  
               
 jsonJobInfoQueue :: (Int,[JobInfo]) -> Value
 jsonJobInfoQueue (lastid,jobinfos) = 
@@ -429,12 +429,11 @@ firstJobAssignment cc (unassigned,finished) = do
   let r = findFirstJob cc (unassigned,finished)
   case r of 
     Nothing -> do 
-      liftIO $ putStrLn "No Compatible Job!"
-      makeTypedContentFromHamletJson [shamlet| no such job |] (toJSON (Left "no compatible job" :: Either String JobInfo)) 
+      makeTypedContentFromHamletJson (return [shamlet| no such job |]) (toJSON (Left "no compatible job" :: Either String JobInfo)) 
     Just assigned -> do 
-      liftIO $ putStrLn "Job Found!"
-      liftIO $ putStrLn (show assigned) 
-      makeTypedContentFromHamletJson [shamlet| this is html found |] (toJSON (Right assigned :: Either String JobInfo))
+      
+      makeTypedContentFromHamletJson (return [shamlet| this is html found |]) 
+                                     (toJSON (Right assigned :: Either String JobInfo))
 
 
 
