@@ -37,10 +37,11 @@ import qualified Data.Conduit as C
 import qualified Data.Conduit.List as CL
 import qualified Data.HashMap.Strict as M
 import           Data.List 
+import qualified Data.Text as T
 import           Network.Wai
--- import           Text.Blaze.Html.Renderer.String (renderHtml)
 import           Text.Hamlet
 import           Yesod hiding (update)
+import           Yesod.Form.Jquery
 -- 
 import HEP.Automation.MadGraph.Util 
 import HEP.Automation.EventGeneration.Type
@@ -52,7 +53,7 @@ import HEP.Storage.WebDAV.Type
 --
 import HEP.Automation.JobQueue.Server.Type
 import HEP.Automation.JobQueue.Server.JobAssign
-
+import Import
 
 data JobQueueServer = JobQueueServer { 
   server_acid :: AcidState JobInfoQueue,
@@ -76,6 +77,11 @@ mkYesod "JobQueueServer" [parseRoutes|
 
 instance Yesod JobQueueServer where
   approot = ApprootStatic ""
+
+instance YesodJquery JobQueueServer where
+    urlJqueryJs _ = Right "http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"
+
+
 
 replaceLst :: (Eq a) => [(a,b)] -> [a] -> Maybe [b]
 replaceLst assoc lst = mapM (\x -> lookup x assoc) lst
@@ -167,15 +173,13 @@ getRevertR n = do
   case rstr of 
     Left e -> do  
      let titlestr = "Job " ++ show n ++ " detail" 
-     return [shamlet|
-             <html> 
-               <head> 
-                 <title>#{titlestr}
-               <body> 
-                 <h1> Job #{n} 
-                 <p>
-                    #{e}
-            |]
+     defaultLayout $ do 
+       getYesod >>= addScriptEither . urlJqueryJs
+       addStylesheetRemote "https://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"
+       addStylesheetRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"
+       addScriptRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"
+       $(widgetFile "joberror")
+
     Right jold -> do 
       let j = jold { jobinfo_status = Unassigned }
           jid = jobinfo_id j 
@@ -221,15 +225,13 @@ getJobR n = do
   let getJobhamlet = case rstr of 
         Left e -> do  
           let titlestr = "Job " ++ show n ++ " detail" 
-          [shamlet|
-             <html> 
-               <head> 
-                 <title>#{titlestr}
-               <body> 
-                 <h1> Job #{n} 
-                 <p>
-                    #{e}
-          |]
+          defaultLayout $ do
+            setTitle (toHtml titlestr)
+            getYesod >>= addScriptEither . urlJqueryJs
+            addStylesheetRemote "https://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"
+            addStylesheetRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"
+            addScriptRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"
+            $(widgetFile "joberror")
         Right j -> do 
           let jid = jobinfo_id j 
               jdet = jobinfo_detail j 
@@ -243,26 +245,14 @@ getJobR n = do
             EventSet ps param rs -> do 
               let wname = makeRunName ps param rs  
                   titlestr = "Job " ++ show n ++ " detail"  
-              let html = [hamlet| 
-                 <html> 
-                   <head> 
-                     <title>#{titlestr}
-                   <body>
-                     <h1> Job #{n} 
-                     <ul> 
-                       <li> job id = #{jid} 
-                       <li> job name = #{wname} 
-                       <li> job status = #{jstatus}
-                       <li> job priority = #{jpriority}  
-                       <li> job remote dir = 
-                         <a href=#{url}/#{jremotedir}> #{jremotedir} 
-                       <li> job detail = #{show jdet} 
-                       <li> <a href=@{RevertR jid}> revert
-
-              |]   
-              toHtml $ html renderer
-
-  makeTypedContentFromHamletJson getJobhamlet (toJSON rstr)
+              defaultLayout $ do 
+                setTitle (toHtml titlestr)
+                getYesod >>= addScriptEither . urlJqueryJs
+                addStylesheetRemote "https://netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"
+                addStylesheetRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css"
+                addScriptRemote "https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"
+                $(widgetFile "job")
+  getJobhamlet >>= \html -> makeTypedContentFromHamletJson html (toJSON rstr)
 
 putJobR :: Int -> Handler TypedContent
 putJobR n = do 

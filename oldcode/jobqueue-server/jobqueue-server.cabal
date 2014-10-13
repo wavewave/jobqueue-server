@@ -64,6 +64,7 @@ Library
                  conduit,
                  configurator,
                  containers, 
+                 data-default,
                  jobqueue-common >= 0.2.999,
                  madgraph-auto, 
                  mtl, 
@@ -71,16 +72,20 @@ Library
                  pipeline-eventgen,
                  safecopy, 
                  shakespeare,
+                 template-haskell,
+                 text,
                  transformers, 
                  unordered-containers,
                  wai, 
                  webdav-manager,
-                 yesod
+                 yesod,
+                 yesod-form
 
 
   Exposed-Modules: HEP.Automation.JobQueue.Server.JobAssign
                    HEP.Automation.JobQueue.Server.Work
                    HEP.Automation.JobQueue.Server.Yesod
-
+  Other-Modules: 
+                   Import
 
 		 

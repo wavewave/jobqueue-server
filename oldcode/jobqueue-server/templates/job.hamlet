@@ -1,0 +1,12 @@
+<h1> Job #{n} 
+<ul> 
+  <li> job id = #{jid} 
+  <li> job name = #{wname} 
+  <li> job status = #{jstatus}
+  <li> job priority = #{jpriority}  
+  <li> job remote dir = 
+    <a href=#{url}/#{jremotedir}> #{jremotedir} 
+  <li> job detail = #{show jdet} 
+  <li> <a href=@{RevertR jid}> revert
+
+
